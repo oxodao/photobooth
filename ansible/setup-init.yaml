@@ -3,6 +3,9 @@
   become: yes
   tags: [init]
 
+  roles:
+    - geerlingguy.ntp
+
   tasks:
     - name: Updating the system setup
       apt:
@@ -14,4 +17,4 @@
 
     - name: Install some softwares
       apt:
-        name: [ zip, unzip, sqlite3 ]
+        name: [ zip, unzip, sqlite3, vim ]

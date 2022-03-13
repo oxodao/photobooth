@@ -8,7 +8,7 @@ root_path: '/home/{{ansible_user}}/data'
 default_mode: 'PHOTOBOOTH'
 
 web:
-  listening_addr: 0.0.0.0:8039
+  listening_addr: 0.0.0.0:{{photobooth_listen_port}}
   admin_password: "{{photobooth_admin_password}}"
 
 mosquitto:

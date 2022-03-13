@@ -1,10 +1,10 @@
 ---
 - hosts: all
-  become: yes
   tags: [photobooth]
 
   tasks:
     - name: Make photobooth dirs
+      become: yes
       file:
         path: /opt/photobooth
         state: 'directory'
@@ -21,10 +21,25 @@
         latest_binary: "{{json_reponse.json['assets'][1]}}" # @TODO: Filter on photobooth-(.*)-linux-arm64, @TODO even later: filter on current os's arch
 
     - name: Downloading the latest release
+      become: yes
       get_url:
         url: "{{latest_binary.browser_download_url}}"
         dest: /opt/photobooth/photobooth
         mode: '0777'
+
+    - name: Symlink the executable
+      become: yes
+      file:
+        src: /opt/photobooth/photobooth
+        dest: /usr/bin/photobooth
+        state: link
+
+    - name: Pushing the photobooth config
+      become: yes
+      template:
+        src: templates/photobooth.yaml.j2
+        dest: /etc/photobooth.yaml
+        mode: 0664
 
     - name: Make data directory
       file:
@@ -32,14 +47,18 @@
         state: directory
         mode: '0770'
 
-    - name: Symlink the executable
-      ansible.builtin.file:
-        src: /opt/photobooth/photobooth
-        dest: /usr/bin/photobooth
-        state: link
-
-    - name: Pushing the photobooth config
+    - name: Pushing the service
+      become: yes
       template:
-        src: templates/photobooth.yaml.j2
-        dest: /etc/photobooth.yaml
-        mode: 0664
+        src: templates/photobooth.service.j2
+        dest: /usr/lib/systemd/user/photobooth.service
+        mode: '0644'
+
+    - name: Enabling the service
+      systemd:
+        name: photobooth
+        daemon_reload: yes
+        state: started
+        enabled: yes
+        scope: user
+
