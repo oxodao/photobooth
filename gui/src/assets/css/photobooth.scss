@@ -1,0 +1,31 @@
+.photobooth{
+    position: relative;
+
+    width: 100%;
+    height: 100%;
+
+    video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .timer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+
+        display: flex;
+
+        // font-size: 10em;
+        font-size: 40vh;
+        justify-content: center;
+        align-items: center;
+
+        &.flash {
+            background-color: rgba(white, .3);
+        }
+    }
+}

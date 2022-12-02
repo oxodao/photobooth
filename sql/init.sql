@@ -1,0 +1,26 @@
+DROP TABLE IF EXISTS image;
+DROP TABLE IF EXISTS event;
+
+DROP TABLE IF EXISTS app_state;
+
+CREATE TABLE event (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(512) NOT NULL,
+    date datetime NOT NULL,
+    author VARCHAR(512) NOT NULL,
+    location VARCHAR(512) NULL
+);
+
+CREATE TABLE image (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER NOT NULL REFERENCES event(id),
+    unattended BOOLEAN NOT NULL DEFAULT 0 CHECK (unattended IN (0, 1)),
+    created_at datetime NOT NULL
+);
+
+CREATE TABLE app_state (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    hwid VARCHAR(255) NOT NULL,
+    token VARCHAR(255) NULL DEFAULT NULL,
+    current_event INTEGER NULL REFERENCES event(id)
+);

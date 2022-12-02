@@ -1,0 +1,24 @@
+# Debug mode lets you connect to the photobooth from another device
+debug_mode: true
+
+# Root path is where all the data related to the photobooth app are stored
+root_path: './0_DATA/'
+
+# Default mode can be either PHOTOBOOTH or QUIZ
+default_mode: 'PHOTOBOOTH'
+
+web:
+  listening_addr: 0.0.0.0:8039
+
+photobooth:
+  # If you have an hardware flash this should be set to true
+  # Hardware flash are controlled by the arduino
+  hardware_flash: false
+
+  # Default timer before taking a picture
+  default_timer: 3
+
+  # When set, the photobooth will take (without flash) a picture every x minutes
+  # After the event you will be able to compile it in a short animated video
+  # Set to zero to disable
+  unattended_interval: 10
