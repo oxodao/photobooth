@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/oxodao/photomaton/models"
+	"github.com/oxodao/photobooth/models"
 )
 
 type Events struct {
@@ -15,9 +15,11 @@ type Events struct {
 func (e *Events) GetEvents() ([]models.Event, error) {
 	events := []models.Event{}
 
+	// @TODO created_at && order by created_at desc
 	rows, err := e.db.Queryx(`
 		SELECT id, name, date, author, location
 		FROM event
+		ORDER BY name
 	`)
 
 	if err != nil {
@@ -56,6 +58,23 @@ func (e *Events) GetEvent(id int64) (*models.Event, error) {
 	err := row.StructScan(&evt)
 
 	return &evt, err
+}
+
+func (e *Events) GetImage(id int64) (*models.Image, error) {
+	row := e.db.QueryRowx(`
+		SELECT id, created_at, unattended, event_id
+		FROM image
+		WHERE id = ?
+	`, id)
+
+	if row.Err() != nil {
+		return nil, row.Err()
+	}
+
+	pct := models.Image{}
+	err := row.StructScan(&pct)
+
+	return &pct, err
 }
 
 func (e *Events) InsertImage(eventId int64, unattended bool) (*models.Image, error) {

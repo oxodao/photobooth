@@ -2,97 +2,111 @@ package services
 
 import (
 	"fmt"
-	"sync"
+	"io/fs"
+	"net"
+	"os/exec"
+	"strings"
 	"time"
 
-	"github.com/gorilla/websocket"
-	"github.com/oxodao/photomaton/config"
-	"github.com/oxodao/photomaton/models"
-	"github.com/oxodao/photomaton/orm"
-	"github.com/oxodao/photomaton/utils"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/oxodao/photobooth/config"
+	"github.com/oxodao/photobooth/models"
+	"github.com/oxodao/photobooth/orm"
+	"github.com/oxodao/photobooth/utils"
 )
 
 var GET *Provider
 
 type Provider struct {
-	Sockets []*Socket
-}
+	Sockets    Sockets
+	MqttClient *mqtt.Client
 
-func (p *Provider) Join(socketType string, socket *websocket.Conn) {
-	sock := &Socket{Type: socketType, Conn: socket, Open: true, mtx: &sync.Mutex{}}
-	p.Sockets = append(p.Sockets, sock)
+	Admin      Admin
+	Photobooth Photobooth
 
-	go func() {
-		for sock.Open {
-			time.Sleep(5 * time.Second)
-			sock.Send("PING", nil)
-		}
-	}()
-
-	go func() {
-		for {
-			data := models.SocketMessage{}
-			err := socket.ReadJSON(&data)
-			if err != nil {
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					fmt.Println("Unexpected close error: ", err)
-					sock.Open = false
-					return
-				} else if websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					fmt.Println("Websocket disconnected: ", err)
-					sock.Open = false
-					return
-				}
-
-				fmt.Println(err)
-				continue
-			}
-
-			sock.OnMessage(data)
-		}
-	}()
-
-	if config.GET.Photobooth.UnattendedInterval > 1 {
-		go func() {
-			for sock.Open {
-				time.Sleep(time.Duration(config.GET.Photobooth.UnattendedInterval) * time.Minute)
-				fmt.Println("Unattended picture")
-				sock.Send("UNATTENDED_PICTURE", nil)
-			}
-		}()
-	}
-
-	sock.SendState()
+	WebappFS   *fs.FS
+	AdminappFS *fs.FS
 }
 
 func (p *Provider) GetFrontendSettings() *models.FrontendSettings {
-	state, err := orm.GET.AppState.GetState()
+
+	settings := models.FrontendSettings{
+		AppState:     p.Photobooth.CurrentState,
+		Photobooth:   config.GET.Photobooth,
+		DebugDisplay: p.Photobooth.DisplayDebug,
+		CurrentMode:  p.Photobooth.CurrentMode,
+
+		IPAddress:  map[string][]string{},
+		KnownModes: config.MODES,
+	}
+
+	events, err := orm.GET.Events.GetEvents()
 	if err != nil {
-		fmt.Println("Failed to get state: ", err)
+		fmt.Println("Failed to get events: ", err)
 		return nil
 	}
 
-	settings := models.FrontendSettings{
-		AppState:     state,
-		CurrentEvent: nil,
-		Photobooth:   config.GET.Photobooth,
-		DebugMode:    config.GET.DebugMode,
-	}
+	settings.KnownEvents = events
 
-	if state.CurrentEvent != nil {
-		evt, err := orm.GET.Events.GetEvent(*state.CurrentEvent)
-		if err != nil {
-			fmt.Println("Failed to get current event: ", err)
-			return nil
+	interfaces, _ := net.Interfaces()
+	for _, inter := range interfaces {
+		shouldSkip := false
+		for _, ignored := range []string{"lo", "br-", "docker", "vmnet", "veth"} { // Ignoring docker / vmware networks for in-dev purposes
+			if strings.HasPrefix(inter.Name, ignored) {
+				shouldSkip = true
+				break
+			}
 		}
 
-		settings.CurrentEvent = evt
+		if shouldSkip {
+			continue
+		}
+
+		settings.IPAddress[inter.Name] = []string{}
+
+		addrs, _ := inter.Addrs()
+		for _, ip := range addrs {
+			settings.IPAddress[inter.Name] = append(settings.IPAddress[inter.Name], ip.String())
+		}
 	}
 
 	return &settings
 }
 
-func Load() error {
+func SetSystemDate(newTime time.Time) error {
+	_, lookErr := exec.LookPath("sudo")
+	if lookErr != nil {
+		fmt.Printf("Sudo binary not found, cannot set system date: %s\n", lookErr.Error())
+		return lookErr
+	} else {
+		dateString := newTime.Format("2 Jan 2006 15:04:05")
+		fmt.Printf("Setting system date to: %s\n", dateString)
+		args := []string{"date", "--set", dateString}
+		return exec.Command("sudo", args...).Run()
+	}
+}
+
+func (prv *Provider) loadState() error {
+	state, err := orm.GET.AppState.GetState()
+	if err != nil {
+		return err
+	}
+
+	if state.CurrentEvent != nil {
+		evt, err := orm.GET.Events.GetEvent(*state.CurrentEvent)
+		if err != nil {
+			return err
+		}
+
+		state.CurrentEventObj = evt
+	}
+
+	prv.Photobooth.CurrentState = state
+
+	return nil
+}
+
+func Load(webapp, adminapp *fs.FS) error {
 	for _, folder := range []string{"images"} {
 		if err := utils.MakeOrCreateFolder(folder); err != nil {
 			return err
@@ -104,11 +118,51 @@ func Load() error {
 		return err
 	}
 
-	prv := Provider{
-		Sockets: []*Socket{},
+	opts := mqtt.NewClientOptions().AddBroker(config.GET.Mosquitto.Address).SetClientID("photobooth").SetPingTimeout(10 * time.Second).SetKeepAlive(10 * time.Second)
+	opts.SetAutoReconnect(true).SetMaxReconnectInterval(10 * time.Second)
+	opts.SetConnectionLostHandler(func(c mqtt.Client, err error) {
+		fmt.Printf("[MQTT] Connection lost: %s\n" + err.Error())
+	})
+	opts.SetReconnectingHandler(func(c mqtt.Client, options *mqtt.ClientOptions) {
+		fmt.Println("[MQTT] Reconnecting...")
+	})
+
+	prv := &Provider{
+		Sockets:    []*Socket{},
+		WebappFS:   webapp,
+		AdminappFS: adminapp,
 	}
 
-	GET = &prv
+	prv.Admin = Admin{prv: prv}
+	prv.Photobooth = Photobooth{
+		prv:         prv,
+		CurrentMode: config.GET.DefaultMode,
+	}
+
+	err = prv.loadState()
+	if err != nil {
+		return err
+	}
+
+	client := mqtt.NewClient(opts)
+	if token := client.Connect(); token.Wait() && token.Error() != nil {
+		return token.Error()
+	}
+
+	actions := map[string]mqtt.MessageHandler{
+		"photobooth/button_press":   prv.Photobooth.OnButtonPress,
+		"photobooth/sync":           prv.Photobooth.OnSyncRequested,
+		"photobooth/admin/set_mode": prv.Admin.OnSetMode,
+	}
+
+	for topic, action := range actions {
+		if token := client.Subscribe(topic, 2, action); token.Wait() && token.Error() != nil {
+			return token.Error()
+		}
+	}
+
+	prv.MqttClient = &client
+	GET = prv
 
 	return nil
 }

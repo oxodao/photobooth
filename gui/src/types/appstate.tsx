@@ -1,7 +1,3 @@
-type appstate = {
-    hwid: string;
-};
-
 type Event = {
     id: number;
     name: string;
@@ -10,9 +6,22 @@ type Event = {
     location?: string|null;
 };
 
+type appstate = {
+    hwid: string;
+    token: string;
+    current_event: Event|null;
+};
+
 export type AppState = {
     app_state: appstate;
-    current_event: Event|null;
     debug: boolean;
     use_hardware_flash: boolean;
+    current_mode: string|null;
+
+    ip_addresses: {
+        [key: string]: string[];
+    };
+
+    known_events: Event[];
+    known_modes: string[];
 };

@@ -7,7 +7,7 @@ import { WsMessage } from "../types/ws_message";
 type WebsocketProps = {
     lastMessage: WsMessage|null;
     appState: AppState|null;
-    currentMode: 'PHOTOBOOTH' | 'QUIZ' | 'DISABLED';
+    currentTime: string|null;
 };
 
 type WebsocketContextProps = WebsocketProps & {
@@ -17,7 +17,7 @@ type WebsocketContextProps = WebsocketProps & {
 const defaultState: WebsocketProps = {
     lastMessage: null,
     appState: null,
-    currentMode: 'PHOTOBOOTH',
+    currentTime: null,
 };
 
 const WebsocketContext = createContext<WebsocketContextProps>({
@@ -68,12 +68,10 @@ export default function WebsocketProvider({ children }: { children: ReactNode })
         switch (data.type){
             case "PING":
                 sendMessage('{"type": "PONG"}')
-                return
+                newCtx.currentTime = data.payload;
+                break
             case "APP_STATE":
                 newCtx.appState = data.payload;
-                break
-            case "SET_MODE":
-                newCtx.currentMode = data.payload;
                 break
         }
 
@@ -84,11 +82,9 @@ export default function WebsocketProvider({ children }: { children: ReactNode })
         ...ctx,
         sendMessage: (msgType: string, data?: any) => sendMessage(JSON.stringify({type: msgType, payload: data})),
     }}>
-        <>
-            <TextLoader loading={readyState != ReadyState.OPEN} text={connectionStatus}>
-                {children}
-            </TextLoader>
-        </>
+        <TextLoader loading={readyState != ReadyState.OPEN} text={connectionStatus}>
+            {children}
+        </TextLoader>
     </WebsocketContext.Provider>
 }
 

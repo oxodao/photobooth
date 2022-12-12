@@ -11,15 +11,32 @@ import (
 
 var GET Config
 
+const (
+	MODE_PHOTOBOOTH = "PHOTOBOOTH"
+	MODE_QUIZ       = "QUIZ"
+	MODE_DISABLED   = "DISABLED"
+)
+
+var MODES = []string{
+	MODE_PHOTOBOOTH,
+	MODE_QUIZ,
+	MODE_DISABLED,
+}
+
 type PhotoboothConfig struct {
 	HardwareFlash      bool `yaml:"hardware_flash" json:"hardware_flash"`
 	DefaultTimer       int  `yaml:"default_timer" json:"-"`
 	UnattendedInterval int  `yaml:"unattended_interval" json:"-"`
 }
 
+type MosquittoConfig struct {
+	Address string `json:"address"`
+}
+
 type Config struct {
 	Web struct {
 		ListeningAddr string `yaml:"listening_addr"`
+		AdminPassword string `yaml:"admin_password"`
 	} `yaml:"web"`
 
 	DebugMode bool `yaml:"debug_mode"`
@@ -27,6 +44,7 @@ type Config struct {
 	RootPath    string `yaml:"root_path"`
 	DefaultMode string `yaml:"default_mode"`
 
+	Mosquitto  MosquittoConfig  `yaml:"mosquitto"`
 	Photobooth PhotoboothConfig `yaml:"photobooth"`
 }
 
@@ -47,9 +65,9 @@ func (c *Config) GetImageFolder(eventId int64, unattended bool) (string, error) 
 func Load() error {
 	cfg := Config{}
 
-	configPath := os.Getenv("PHOTOMATON_CONFIG_PATH")
+	configPath := os.Getenv("PHOTOBOOTH_CONFIG_PATH")
 	if len(configPath) == 0 {
-		configPath = "/etc/photomaton.yaml"
+		configPath = "/etc/photobooth.yaml"
 	}
 
 	data, err := ioutil.ReadFile(configPath)

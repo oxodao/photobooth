@@ -14,8 +14,50 @@ html, body, #root {
     overflow: hidden; // meh
 }
 
-#EVENT_NAME {
+.debug {
     position: absolute;
-    top: .5em;
-    left: .5em;
+    display: flex;
+    flex-direction: column;
+
+    z-index: 99;
+    background-color: rgba(#1f1f1f, .8);
+    padding: .5em;
+}
+
+.abstl {
+    top: 0;
+    left: 0;
+}
+
+.abstr {
+    align-items: end;
+    top: 0;
+    right: 0;
+}
+
+.absbl {
+    bottom: 0;
+    left: 0;
+}
+
+.absbr {
+    bottom: 0;
+    right: 0;
+}
+
+#modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+
+    z-index: 9999;
+
+    background-color: rgba(#1f1f1f, .95);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }

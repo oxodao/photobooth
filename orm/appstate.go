@@ -2,7 +2,7 @@ package orm
 
 import (
 	"github.com/jmoiron/sqlx"
-	"github.com/oxodao/photomaton/models"
+	"github.com/oxodao/photobooth/models"
 )
 
 type AppState struct {
@@ -13,7 +13,7 @@ func (x *AppState) GetState() (models.AppState, error) {
 	as := models.AppState{}
 
 	row := x.db.QueryRowx(`
-		SELECT hwid, token, current_event
+		SELECT hwid, token, current_event, last_applied_migration
 		FROM app_state
 		WHERE id = 1
 	`)
@@ -39,6 +39,9 @@ func (x *AppState) CreateState(state models.AppState) error {
 }
 
 func (x *AppState) SetState(state models.AppState) error {
+	_, err := x.db.Exec(`
+		UPDATE app_state SET current_event = ?
+	`, state.CurrentEvent)
 
-	return nil
+	return err
 }

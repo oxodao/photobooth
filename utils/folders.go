@@ -4,11 +4,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/oxodao/photomaton/config"
+	"github.com/oxodao/photobooth/config"
 )
 
-func GetPath(path string) string {
-	return filepath.Join(config.GET.RootPath, path)
+func GetPath(path ...string) string {
+	path = append([]string{config.GET.RootPath}, path...)
+
+	return filepath.Join(path...)
 }
 
 func MakeOrCreateFolder(path string) error {

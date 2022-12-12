@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 import '../assets/css/photobooth.scss';
+import LockedModal from "../components/locked_modal";
 import { useWebsocket } from "../hooks/ws";
 
 const debugOpenImage = (img: string) => {
@@ -27,33 +28,48 @@ const debugOpenImage = (img: string) => {
     window.open(blobUrl, '_blank');
 };
 
-export default function Photobooth({disabled}: {disabled: boolean}) {
+export default function Photobooth() {
     const webcamRef = useRef<Webcam>(null);
+
     const [timer, setTimer] = useState(-1);
     const { appState, lastMessage, sendMessage } = useWebsocket();
 
-    const takePicture = (unattended: boolean) => {
+    const [flash, setFlash] = useState<boolean>(false);
+
+    const [lastPicture, setLastPicture] = useState<string|null>(null);
+
+    const takePicture = async (unattended: boolean) => {
         if (!webcamRef || !webcamRef.current) {
             return;
         }
 
         const imageSrc = webcamRef.current.getScreenshot();
         if (imageSrc) {
-            // debugOpenImage(imageSrc);
-
             let form = new FormData();
+
             form.append('image', imageSrc);
             form.append('unattended', unattended ? 'true' : 'false')
-            form.append('event', ''+appState?.current_event?.id)
+            form.append('event', ''+appState?.app_state?.current_event?.id)
 
-            fetch('/api/picture', {
-                method: 'POST',
-                body: form,
-            }).then(() => {
+            try {
+                const resp = await fetch('/api/picture', {
+                    method: 'POST',
+                    body: form,
+                });
+         
                 setTimer(-1);
-            }).catch(() => {
+
+                if (!unattended) {
+                    const image = await resp.blob();
+                    const url = URL.createObjectURL(image);
+
+                    setLastPicture(url);
+
+                    setTimeout(() => setLastPicture(null), 3500);
+                }
+            } catch {
                 setTimer(-1);
-            })
+            }
         }
     };
 
@@ -65,7 +81,12 @@ export default function Photobooth({disabled}: {disabled: boolean}) {
         if (lastMessage.type == 'TIMER') {
             setTimer(lastMessage.payload)
             if (lastMessage.payload === 0) {
-                takePicture(false);
+                // takePicture(false);
+                setFlash(true);
+                setTimeout(() => {
+                    takePicture(false);
+                    setFlash(false);
+                }, 150);
             }
 
             return
@@ -86,13 +107,28 @@ export default function Photobooth({disabled}: {disabled: boolean}) {
             ref={webcamRef}
             width={1280}
             height={720}
-            onClick={() => !disabled && sendMessage('TAKE_PICTURE')}
+            onClick={() => appState.current_mode !== 'DISABLED' && sendMessage('TAKE_PICTURE')}
             screenshotFormat="image/jpeg"
             videoConstraints={{ facingMode: 'user' }}
         />
         {
             timer >= 0 &&
-            <div className={`timer ${appState.use_hardware_flash ? '' : 'flash'}`}>{timer > 0 && timer}</div>
+            <div className={`timer`}>{timer > 0 && timer}</div>
+        }
+
+        {
+            flash &&
+            <div className="timer flash"></div>
+        }
+
+        {
+            appState.current_mode === 'DISABLED' && <LockedModal />
+        }
+
+        {
+            lastPicture && <div className="picture_frame">
+                <img src={lastPicture} alt="Last picture" />
+            </div>
         }
     </div>
 }

@@ -1,0 +1,13 @@
+[Unit]
+Description=Photobooth service
+Before=graphical.target systemd-user-sessions.service
+
+[Service]
+User=photobooth
+WorkingDirectory=~
+ExecStart=/opt/photobooth/photobooth
+Restart=always
+RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target

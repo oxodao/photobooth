@@ -8,16 +8,18 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/oxodao/photomaton/config"
-	"github.com/oxodao/photomaton/models"
-	"github.com/oxodao/photomaton/orm"
-	"github.com/oxodao/photomaton/routes"
+	"github.com/oxodao/photobooth/config"
+	"github.com/oxodao/photobooth/models"
+	"github.com/oxodao/photobooth/orm"
+	"github.com/oxodao/photobooth/routes"
+	"github.com/oxodao/photobooth/services"
+	"github.com/oxodao/photobooth/utils"
 	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "photomaton",
-	Short: "The photomaton main app",
+	Use:   "photobooth",
+	Short: "The photobooth main app",
 	Run: func(cmd *cobra.Command, args []string) {
 		_, err := orm.GET.AppState.GetState()
 		if err != nil {
@@ -28,7 +30,7 @@ var rootCmd = &cobra.Command{
 
 			as := models.AppState{
 				HardwareID: uuid.New().String(),
-				ApiToken:   nil, // @TODO: The token should be retreived from the API server while setting the photomaton up
+				ApiToken:   nil, // @TODO: The token should be retreived from the API server while setting the photobooth up
 			}
 			err := orm.GET.AppState.CreateState(as)
 			if err != nil {
@@ -41,7 +43,20 @@ var rootCmd = &cobra.Command{
 
 		r := mux.NewRouter()
 
+		r.PathPrefix("/media/photobooth").Handler(http.StripPrefix("/media/photobooth", http.FileServer(http.Dir(utils.GetPath("images")))))
+
 		routes.Register(r.PathPrefix("/api").Subrouter())
+		if services.GET.AdminappFS != nil {
+			r.PathPrefix("/admin").Handler(http.StripPrefix("/admin", http.FileServer(http.FS(*services.GET.AdminappFS))))
+		} else {
+			fmt.Println("Failed to embed admin: not loaded")
+		}
+
+		if services.GET.WebappFS != nil {
+			r.PathPrefix("/").Handler(http.FileServer(http.FS(*services.GET.WebappFS)))
+		} else {
+			fmt.Println("Failed to embed webapp: not loaded")
+		}
 
 		fmt.Printf("Photobooth app is listening on %v\n", config.GET.Web.ListeningAddr)
 		err = http.ListenAndServe(config.GET.Web.ListeningAddr, r)
@@ -57,5 +72,5 @@ func Execute() {
 }
 
 func init() {
-
+	rootCmd.AddCommand(versionCmd)
 }

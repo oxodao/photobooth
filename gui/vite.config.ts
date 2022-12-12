@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '^/api': {
-        target: 'http://localhost:8039',
+        target: 'http://host.docker.internal:8039',
         ws: true,
         secure: false,
         changeOrigin: true,

@@ -14,9 +14,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	"github.com/oxodao/photomaton/config"
-	"github.com/oxodao/photomaton/orm"
-	"github.com/oxodao/photomaton/services"
+	"github.com/oxodao/photobooth/config"
+	"github.com/oxodao/photobooth/orm"
+	"github.com/oxodao/photobooth/services"
 	"golang.org/x/exp/slices"
 )
 
@@ -32,6 +32,8 @@ func Register(r *mux.Router) {
 	r.HandleFunc("/socket/{type}", socket)
 	r.HandleFunc("/settings", settings)
 	r.HandleFunc("/picture", picture).Methods(http.MethodPost)
+
+	registerAdminRoutes(r.PathPrefix("/admin").Subrouter())
 }
 
 func socket(w http.ResponseWriter, r *http.Request) {
@@ -42,22 +44,27 @@ func socket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		fmt.Println("Failed to parse hostport: ", err)
-		fmt.Println("Got hostport: ", r.RemoteAddr)
+	// Photobooth should not be allowed from another computer
+	if socketType == services.SOCKET_TYPE_PHOTOBOOTH {
+		host, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			fmt.Println("Failed to parse hostport: ", err)
+			fmt.Println("Got hostport: ", r.RemoteAddr)
 
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if slices.Contains([]string{"[::1]", "127.0.0.1"}, host) {
-		if !config.GET.DebugMode {
-			w.WriteHeader(http.StatusForbidden)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		fmt.Println("[Debug mode] Letting a remote connection from ", host)
+		if !slices.Contains([]string{"[::1]", "127.0.0.1"}, host) {
+			if !config.GET.DebugMode {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+
+			fmt.Println("[Debug mode] Letting a remote connection from ", host)
+		}
+	} else {
+		// @TODO: Handle authentication
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -75,6 +82,39 @@ func settings(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	data, _ := json.Marshal(settings)
 	w.Write(data)
+}
+
+func getEventAndFilename(event string, isUnattended bool) (int64, string) {
+	var err error
+	var eventId int64 = -1
+	var imageName string = fmt.Sprintf("%v.jpg", time.Now().Format("20060102-150405"))
+
+	eventId, err = strconv.ParseInt(event, 10, 64)
+	if err != nil {
+		fmt.Println("Failed to get event id: ", err)
+		fmt.Println("Fallingback to id -1")
+		eventId = -1
+	}
+
+	if eventId == -1 {
+		return -1, imageName
+	}
+
+	evt, err := orm.GET.Events.GetEvent(eventId)
+	if err != nil {
+		fmt.Println("No event for the given id")
+		return -1, imageName
+	}
+
+	img, err := orm.GET.Events.InsertImage(evt.Id, isUnattended)
+	if err != nil {
+		fmt.Println("Failed to insert image: ", err)
+		fmt.Println("Defaulting name to current timestamp in the root folder for the event")
+	} else {
+		imageName = fmt.Sprintf("%v.jpg", img.Id)
+	}
+
+	return evt.Id, imageName
 }
 
 func picture(w http.ResponseWriter, r *http.Request) {
@@ -95,13 +135,6 @@ func picture(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventId, err := strconv.ParseInt(event, 10, 64)
-	if err != nil {
-		fmt.Println("Failed to get event id: ", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
 	isUnattended, err := strconv.ParseBool(unattended)
 	if err != nil {
 		fmt.Println("Failed to parse unattended var: ", err)
@@ -109,32 +142,17 @@ func picture(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	evt, err := orm.GET.Events.GetEvent(eventId)
-	if err != nil {
-		fmt.Println("No event for the given id")
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
+	eventId, filename := getEventAndFilename(event, isUnattended)
 
-	imageName := ""
-
-	img, err := orm.GET.Events.InsertImage(eventId, isUnattended)
-	if err != nil {
-		fmt.Println("Failed to insert image: ", err)
-		fmt.Println("Defaulting name to current timestamp in the root folder for the event")
-		imageName = fmt.Sprintf("%v.jpg", time.Now().Format("20060102-150405"))
-	} else {
-		imageName = fmt.Sprintf("%v.jpg", img.Id)
-	}
-
-	path, err := config.GET.GetImageFolder(evt.Id, isUnattended)
+	path, err := config.GET.GetImageFolder(eventId, isUnattended)
 	if err != nil {
 		fmt.Println("Failed to create path: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	f, err := os.Create(filepath.Join(path, imageName))
+	filepath := filepath.Join(path, filename)
+	f, err := os.Create(filepath)
 	if err != nil {
 		fmt.Println("Failed to create image file...")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -159,5 +177,9 @@ func picture(w http.ResponseWriter, r *http.Request) {
 
 	if err = f.Sync(); err != nil {
 		fmt.Println("Failed to sync the data ! be careful")
+	}
+
+	if !isUnattended {
+		http.ServeFile(w, r, filepath)
 	}
 }
