@@ -4,6 +4,22 @@
   tags: [init]
 
   tasks:
+    # GHA compiles for glibc 2.32+ and debian stable comes with 2.31 >:(
+    # Too lazy to do a hack to compile for glibc 2.31 on GHA. Maybe will be done later
+    - name: Switch from debian stable to testing
+      replace:
+        path: /etc/apt/sources.list
+        regexp: 'bullseye'
+        replace: 'testing'
+
+    - name: Updating the system setup
+      apt:
+        update_cache: yes
+        upgrade: yes
+        cache_valid_time: 86400
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+
     - name: Install some softwares
       apt:
         name: [ zip, unzip, sqlite3 ]
