@@ -1,0 +1,7 @@
+---
+debug_mode: true
+photobooth_debug_mode: true
+photobooth_admin_password: admin
+photobooth_has_hardware_flash: false
+photobooth_default_timer: 3
+photobooth_unattended_interval: 5

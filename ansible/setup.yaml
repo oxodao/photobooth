@@ -1,0 +1,4 @@
+---
+- import_playbook: setup-init.yaml
+- import_playbook: setup-mosquitto.yaml
+- import_playbook: setup-photobooth.yaml

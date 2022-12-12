@@ -1,0 +1,39 @@
+---
+- hosts: all
+  become: yes
+  tags: [photobooth]
+
+  tasks:
+    - name: Make photobooth dirs
+      file:
+        path: /opt/photobooth
+        state: 'directory'
+        mode: '0777' # fck
+
+    - name: Fetching the latest release infos
+      uri:                                                               
+        url: https://api.github.com/repos/oxodao/photobooth-v3/releases/latest
+        return_content: true                                             
+      register: json_reponse 
+
+    - name: Filtering on arm64
+      set_fact:
+        latest_binary: "{{json_reponse.json['assets'][1]}}" # @TODO: Filter on photobooth-(.*)-linux-arm64, @TODO even later: filter on current os's arch
+
+    - name: Downloading the latest release
+      get_url:
+        url: "{{latest_binary.browser_download_url}}"
+        dest: /opt/photobooth/photobooth
+        mode: '0777'
+
+    - name: Make data directory
+      file:
+        path: "/home/{{ansible_user}}/data"
+        state: directory
+        mode: '0770'
+
+    - name: Pushing the photobooth config
+      template:
+        src: templates/photobooth.yaml.j2
+        dest: /etc/photobooth.yaml
+        mode: 0664

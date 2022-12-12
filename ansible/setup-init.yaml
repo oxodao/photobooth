@@ -1,0 +1,9 @@
+---
+- hosts: all
+  become: yes
+  tags: [init]
+
+  tasks:
+    - name: Install some softwares
+      apt:
+        name: [ zip, unzip, sqlite3 ]

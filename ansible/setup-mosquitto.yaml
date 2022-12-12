@@ -1,0 +1,20 @@
+---
+- hosts: all
+  become: yes
+  tags: [mosquitto]
+
+  tasks:
+    - name: Install mosquitto
+      apt:
+        name: [ mosquitto ]
+
+    - name: Config mosquitto
+      lineinfile:
+        path: /etc/mosquitto/mosquitto.conf
+        line: listener 1883 127.0.0.1
+
+    - name: Enable & start mosquitto
+      systemd:
+        name: mosquitto
+        enabled: yes
+        state: restarted
