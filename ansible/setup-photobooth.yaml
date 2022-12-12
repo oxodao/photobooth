@@ -32,6 +32,12 @@
         state: directory
         mode: '0770'
 
+    - name: Symlink the executable
+      ansible.builtin.file:
+        src: /opt/photobooth/photobooth
+        dest: /usr/bin/photobooth
+        state: link
+
     - name: Pushing the photobooth config
       template:
         src: templates/photobooth.yaml.j2
