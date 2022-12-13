@@ -28,7 +28,7 @@ func main() {
 	var webappFs *fs.FS = nil
 	var adminappFs *fs.FS = nil
 
-	if strings.HasPrefix(execPath, "/tmp/") {
+	if !strings.HasPrefix(execPath, "/tmp/") {
 		subfs, err := fs.Sub(webapp, "gui/dist")
 		if err != nil {
 			fmt.Println("Failed to get webapp path. Not loading the webapp", err)
