@@ -99,7 +99,7 @@ export default function PageIndex() {
         </Card>
         <Card>
             <CardActions>
-                <Button style={{ width: '100%' }} onClick={() => setShutdown(true)}>Shutdown</Button>
+                <Button style={{ width: '100%' }} color="error" onClick={() => setShutdown(true)}>Shutdown</Button>
             </CardActions>
         </Card>
 
@@ -130,7 +130,7 @@ export default function PageIndex() {
                 <Button onClick={() => {
                     sendMessage('SHUTDOWN', null);
                     setShutdown(false);
-                }} autoFocus>Change event</Button>
+                }} color="error" autoFocus>Shutdown</Button>
             </DialogActions>
         </Dialog>
     </App>;

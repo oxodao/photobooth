@@ -10,3 +10,10 @@
 
 # Version 3
 - [] Remote sync to a server when connected to the internet so that the pictures are automatically shared as soon as internet is available
+
+
+### Short term roadmap
+- [] Implement the create / edit / delete event in the photobooth tab
+- [] Implement the dump picture for an event
+- [] Setup hostapd in ansible
+- [] Start to work on quiz
