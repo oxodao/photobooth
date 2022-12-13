@@ -10,18 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     if: github.actor == github.event.repository.owner.login
     steps:
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 19.0.1
-      - uses: actions/setup-go@v3
-        with:
-          go-version: '^1.19.4'
-      - run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
       - uses: actions/checkout@v2
-      - run: cd gui && npm i && npm run build && cd ..
-      - run: cd gui_admin && npm i && npm run build && cd ..
-      - run: CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags="-X github.com/oxodao/photobooth/utils.CURRENT_VERSION=${GITHUB_REF##*/} -X github.com/oxodao/photobooth/utils.CURRENT_COMMIT=${GITHUB_SHA}" -o photobooth-${GITHUB_REF##*/}-linux-amd64 .
-      - run: CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc go build -ldflags="-X github.com/oxodao/photobooth/utils.CURRENT_VERSION=${GITHUB_REF##*/} -X github.com/oxodao/photobooth/utils.CURRENT_COMMIT=${GITHUB_SHA}" -o photobooth-${GITHUB_REF##*/}-linux-arm64 .
+      - run: docker run -v $PWD:/app oxodao/oxbuilder:n19g19 bash -c "cd /app/gui && npm i && npm run build"
+      - run: docker run -v $PWD:/app oxodao/oxbuilder:n19g19 bash -c "cd /app/gui_admin && npm i && npm run build"
+      - run: docker run -v $PWD:/app oxodao/oxbuilder:n19g19 bash -c 'CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags="-X github.com/oxodao/photobooth/utils.CURRENT_VERSION=${GITHUB_REF##*/} -X github.com/oxodao/photobooth/utils.CURRENT_COMMIT=${GITHUB_SHA}" -o photobooth-${GITHUB_REF##*/}-linux-amd64 .'
+      - run: docker run -v $PWD:/app oxodao/oxbuilder:n19g19 bash -c 'CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc go build -ldflags="-X github.com/oxodao/photobooth/utils.CURRENT_VERSION=${GITHUB_REF##*/} -X github.com/oxodao/photobooth/utils.CURRENT_COMMIT=${GITHUB_SHA}" -o photobooth-${GITHUB_REF##*/}-linux-arm64 .'
       - uses: ncipollo/release-action@v1
         with:
           artifacts: "photobooth-*-*-*"

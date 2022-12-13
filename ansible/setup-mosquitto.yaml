@@ -8,10 +8,15 @@
       apt:
         name: [ mosquitto ]
 
-    - name: Config mosquitto
+    - name: Make mosquitto listen on localhost
       lineinfile:
         path: /etc/mosquitto/mosquitto.conf
         line: listener 1883 127.0.0.1
+
+    - name: Allow anonymous user on mosquitto
+      lineinfile:
+        path: /etc/mosquitto/mosquitto.conf
+        line: allow_anonymous true
 
     - name: Enable & start mosquitto
       systemd:
