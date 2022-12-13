@@ -1,1 +1,1 @@
-photobooth ansible_user=raspberry ansible_password=pi ansible_host=192.168.1.213 ansible_port=22
+photobooth ansible_user=pi ansible_password=raspberry ansible_host=192.168.1.213 ansible_port=22

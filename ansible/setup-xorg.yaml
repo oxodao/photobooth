@@ -2,11 +2,21 @@
 - hosts: all
   tags: [xorg]
 
+  vars:
+    firefox_profiles:
+      default:
+        extensions: []
+        preferences:
+          privacy.webrtc.legacyGlobalIndicator: false
+
+  roles:
+    - staticdev.firefox
+
   tasks:
     - name: Setting up xorg
       become: yes
       apt:
-        name: [ unclutter, xorg, firefox-esr, i3, dmenu, suckless-tools, fonts-dejavu-core, fonts-dejavu-extra ]
+        name: [ unclutter, xorg, i3, dmenu, suckless-tools, fonts-dejavu-core, fonts-dejavu-extra ]
 
     # @TODO: set about:config => privacy.webrtc.legacyGlobalIndicator to false in Firefox
 
