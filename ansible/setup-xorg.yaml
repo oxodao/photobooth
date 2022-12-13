@@ -7,18 +7,18 @@
       default:
         extensions: []
         preferences:
-          privacy.webrtc.legacyGlobalIndicator: false
-
-  roles:
-    - staticdev.firefox
+          privacy.webrtc.legacyGlobalIndicator: false  # Disable the small "webcam indicator" on top of the window
+          media.navigator.permission.disabled: true    # Let all wabsite access webcam without permissions
 
   tasks:
     - name: Setting up xorg
       become: yes
       apt:
-        name: [ unclutter, xorg, i3, dmenu, suckless-tools, fonts-dejavu-core, fonts-dejavu-extra ]
+        name: [ unclutter, xorg, i3, firefox-esr, dmenu, suckless-tools, fonts-dejavu-core, fonts-dejavu-extra ]
 
-    # @TODO: set about:config => privacy.webrtc.legacyGlobalIndicator to false in Firefox
+    - name: Setting up firefox
+      include_role:
+        name: staticdev.firefox
 
     - name: Creating the xinitrc
       template:

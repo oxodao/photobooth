@@ -1,15 +1,17 @@
 # Photobooth
 
 ## Install
-Flash an SD card with Raspbian lite and boot it up with an ethernet connection.
+Flash an SD card with Raspbian lite (64 BITS !!!) and boot it up with an ethernet connection.
 
 Do the first time setup:
-- Login with the `pi / raspberry` account
+- Create a `pi` account with a known password
 - `sudo raspi-config`
     - Set your locale / timezone / keyboard layout accordingly
-    - Interface options: enable SSH
-    - Change the raspberry account password
+    - Enable console autologin
+    - Enable SSH
     - Reboot 
+
+If you have an older Pi (Running 32 bit operating system) you'll have a few more steps (Expanding storage, ...) along with recompiling the photobooth for your architecture. This is not supported and no help will be given. I'm not even sure it works on 32bits tbh I had no thought about it while coding it.
 
 Clone the repository:
 ```

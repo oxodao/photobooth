@@ -27,6 +27,3 @@ set-mode-quiz:
 
 set-mode-disabled:
 	docker compose exec mosquitto mosquitto_pub -h 127.0.0.1 -t photobooth/admin/set_mode -m "DISABLED"
-
-release:
-	docker run -v $(PWD):/app oxodao/oxbuilder:n19g19 bash -c "cd /app/gui && npm i && npm run build && cd ../gui_admin && npm i && npm run build && cd .. && go build"

@@ -12,9 +12,6 @@ set $ws1 "1"
 bindsym $mod+ampersand workspace number $ws1
 bindsym $mod+Shift+ampersand move container to workspace number $ws1
 
-for_window [class="Sharing Indicator$"] move scratchpad
-assign [class="Sharing Indicator$"] scratchpad
-
 bar {
         status_command i3status
 }
