@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"os/exec"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -35,6 +36,13 @@ func (pb *Photobooth) OnButtonPress(client mqtt.Client, msg mqtt.Message) {
 			pb.DisplayDebug = false
 			pb.prv.Sockets.BroadcastState()
 		}()
+	case "SHUTDOWN":
+		if err := GET.Shutdown(); err != nil {
+			pb.prv.Sockets.broadcastTo("", "ERR_MODAL", "Failed to shutdown: "+err.Error())
+			return
+		}
+
+		exec.Command("shutdown", "-h", "now").Run()
 	}
 
 	msg.Ack()

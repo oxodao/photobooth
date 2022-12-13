@@ -18,7 +18,7 @@ const darkTheme = createTheme({
   palette: {
     mode: 'dark',
   },
-})
+});
 
 const router = createHashRouter([
   {

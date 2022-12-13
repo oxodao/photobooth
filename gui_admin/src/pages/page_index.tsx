@@ -27,6 +27,7 @@ export default function PageIndex() {
     const [modes, setModes] = useState<string[]>([]);
 
     const [newEvent, setNewEvent] = useState<Event | null>(null);
+    const [shutdown, setShutdown] = useState<boolean>(false);
 
     useEffect(() => {
         if (!appState) {
@@ -96,6 +97,11 @@ export default function PageIndex() {
                 <Button style={{ width: '100%' }} onClick={() => sendMessage('SHOW_DEBUG', null)}>Show debug info (30 sec)</Button>
             </CardActions>
         </Card>
+        <Card>
+            <CardActions>
+                <Button style={{ width: '100%' }} onClick={() => setShutdown(true)}>Shutdown</Button>
+            </CardActions>
+        </Card>
 
         <Dialog open={!!newEvent} onClose={() => setNewEvent(null)}>
             <DialogTitle>Change event</DialogTitle>
@@ -110,6 +116,20 @@ export default function PageIndex() {
                 <Button onClick={() => {
                     sendMessage('SET_EVENT', newEvent?.id);
                     setNewEvent(null);
+                }} autoFocus>Change event</Button>
+            </DialogActions>
+        </Dialog>
+
+        <Dialog open={shutdown} onClose={() => setShutdown(false)}>
+            <DialogTitle>Shutting down</DialogTitle>
+            <DialogContent>
+                <DialogContentText>You are trying to shutdown the photobooth. Are you sure ?</DialogContentText>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={() => setShutdown(false)}>Cancel</Button>
+                <Button onClick={() => {
+                    sendMessage('SHUTDOWN', null);
+                    setShutdown(false);
                 }} autoFocus>Change event</Button>
             </DialogActions>
         </Dialog>

@@ -1,3 +1,4 @@
+import { Alert, Snackbar } from "@mui/material";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { TextLoader } from "../components/loader";
@@ -5,9 +6,10 @@ import { AppState } from "../types/appstate";
 import { WsMessage } from "../types/ws_message";
 
 type WebsocketProps = {
-    lastMessage: WsMessage|null;
-    appState: AppState|null;
-    currentTime: string|null;
+    lastMessage: WsMessage | null;
+    appState: AppState | null;
+    currentTime: string | null;
+    lastError: string | null
 };
 
 type WebsocketContextProps = WebsocketProps & {
@@ -18,6 +20,7 @@ const defaultState: WebsocketProps = {
     lastMessage: null,
     appState: null,
     currentTime: null,
+    lastError: null,
 };
 
 const WebsocketContext = createContext<WebsocketContextProps>({
@@ -57,21 +60,24 @@ export default function WebsocketProvider({ children }: { children: ReactNode })
     }[readyState];
 
     useEffect(() => {
-        if (!lastMessage){
+        if (!lastMessage) {
             return;
         }
 
 
         const data = JSON.parse(lastMessage.data);
-        let newCtx = {...ctx, lastMessage: data};
+        let newCtx = { ...ctx, lastMessage: data };
 
-        switch (data.type){
+        switch (data.type) {
             case "PING":
                 sendMessage('{"type": "PONG"}')
                 newCtx.currentTime = data.payload;
                 break
             case "APP_STATE":
                 newCtx.appState = data.payload;
+                break
+            case "ERR_MODAL":
+                newCtx.lastError = data.payload;
                 break
         }
 
@@ -80,11 +86,19 @@ export default function WebsocketProvider({ children }: { children: ReactNode })
 
     return <WebsocketContext.Provider value={{
         ...ctx,
-        sendMessage: (msgType: string, data?: any) => sendMessage(JSON.stringify({type: msgType, payload: data})),
+        sendMessage: (msgType: string, data?: any) => sendMessage(JSON.stringify({ type: msgType, payload: data })),
     }}>
-        <TextLoader loading={readyState != ReadyState.OPEN} text={connectionStatus}>
-            {children}
-        </TextLoader>
+        <>
+            <TextLoader loading={readyState != ReadyState.OPEN} text={connectionStatus}>
+                {children}
+            </TextLoader>
+
+            <Snackbar open={!!ctx.lastError} autoHideDuration={6000} onClose={() => setContext({ ...ctx, lastError: null })} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+                <Alert onClose={() => setContext({ ...ctx, lastError: null })} severity="error" sx={{ width: '100%' }}>
+                    {ctx.lastError}
+                </Alert>
+            </Snackbar>
+        </>
     </WebsocketContext.Provider>
 }
 

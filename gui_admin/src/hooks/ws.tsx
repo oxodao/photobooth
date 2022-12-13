@@ -6,10 +6,10 @@ import { AppState } from "../types/appstate";
 import { WsMessage } from "../types/ws_message";
 
 type WebsocketProps = {
-    lastMessage: WsMessage|null;
-    appState: AppState|null;
-    currentTime: string|null;
-    lastError: string|null
+    lastMessage: WsMessage | null;
+    appState: AppState | null;
+    currentTime: string | null;
+    lastError: string | null
 };
 
 type WebsocketContextProps = WebsocketProps & {
@@ -60,15 +60,15 @@ export default function WebsocketProvider({ children }: { children: ReactNode })
     }[readyState];
 
     useEffect(() => {
-        if (!lastMessage){
+        if (!lastMessage) {
             return;
         }
 
 
         const data = JSON.parse(lastMessage.data);
-        let newCtx = {...ctx, lastMessage: data};
+        let newCtx = { ...ctx, lastMessage: data };
 
-        switch (data.type){
+        switch (data.type) {
             case "PING":
                 sendMessage('{"type": "PONG"}')
                 newCtx.currentTime = data.payload;
@@ -86,15 +86,15 @@ export default function WebsocketProvider({ children }: { children: ReactNode })
 
     return <WebsocketContext.Provider value={{
         ...ctx,
-        sendMessage: (msgType: string, data?: any) => sendMessage(JSON.stringify({type: msgType, payload: data})),
+        sendMessage: (msgType: string, data?: any) => sendMessage(JSON.stringify({ type: msgType, payload: data })),
     }}>
         <>
             <TextLoader loading={readyState != ReadyState.OPEN} text={connectionStatus}>
                 {children}
             </TextLoader>
 
-            <Snackbar open={!!ctx.lastError} autoHideDuration={6000} onClose={() => setContext({...ctx, lastError: null})} anchorOrigin={{vertical: "bottom", horizontal: "center"}}>
-                <Alert onClose={() => setContext({...ctx, lastError: null})} severity="error" sx={{ width: '100%' }}>
+            <Snackbar open={!!ctx.lastError} autoHideDuration={6000} onClose={() => setContext({ ...ctx, lastError: null })} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+                <Alert onClose={() => setContext({ ...ctx, lastError: null })} severity="error" sx={{ width: '100%' }}>
                     {ctx.lastError}
                 </Alert>
             </Snackbar>

@@ -166,3 +166,7 @@ func Load(webapp, adminapp *fs.FS) error {
 
 	return nil
 }
+
+func (p *Provider) Shutdown() error {
+	return orm.GET.DB.Close()
+}

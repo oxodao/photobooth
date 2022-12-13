@@ -151,6 +151,8 @@ func (s *Socket) OnMessage(msg models.SocketMessage) {
 		GET.Sockets.BroadcastState()
 	case "SHOW_DEBUG":
 		(*GET.MqttClient).Publish("photobooth/button_press", 2, false, "DISPLAY_DEBUG")
+	case "SHUTDOWN":
+		(*GET.MqttClient).Publish("photobooth/button_press", 2, false, "SHUTDOWN")
 	case "":
 		// Probably should be handled in another way
 		return
