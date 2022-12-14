@@ -4,6 +4,9 @@ export type Event = {
     author: string;
     date: number;
     location?: string|null;
+
+    amt_images_handtaken: number;
+    amt_images_unattended: number;
 };
 
 type appstate = {

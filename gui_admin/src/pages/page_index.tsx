@@ -48,7 +48,7 @@ export default function PageIndex() {
         const events = knownEvents.filter(x => x.id === (evt.target.value as unknown as number)); // wow such typescript
         if (events.length > 0) {
             if (!currentEvent) {
-                sendMessage('SET_EVENT', events[0]);
+                sendMessage('SET_EVENT', events[0].id);
             } else {
                 setNewEvent(events[0]);
             }

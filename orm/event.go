@@ -16,9 +16,17 @@ func (e *Events) GetEvents() ([]models.Event, error) {
 	events := []models.Event{}
 
 	// @TODO created_at && order by created_at desc
+	// @TODO rewrite with no subquery
 	rows, err := e.db.Queryx(`
-		SELECT id, name, date, author, location
+		SELECT id, name, date, author, location, counts.handtaken amt_images_handtaken, counts.unattended amt_images_unattended
 		FROM event
+		INNER JOIN (
+			SELECT event_id,
+				SUM(CASE unattended WHEN TRUE THEN 0 ELSE 1 END) handtaken,
+				SUM(CASE unattended WHEN TRUE THEN 1 ELSE 0 END) unattended
+			FROM image
+			GROUP BY event_id
+		) counts ON event.id = counts.event_id
 		ORDER BY name
 	`)
 
@@ -41,8 +49,15 @@ func (e *Events) GetEvents() ([]models.Event, error) {
 
 func (e *Events) GetEvent(id int64) (*models.Event, error) {
 	row := e.db.QueryRowx(`
-		SELECT id, name, date, author, location
+		SELECT id, name, date, author, location, counts.handtaken amt_images_handtaken, counts.unattended amt_images_unattended
 		FROM event
+		INNER JOIN (
+			SELECT event_id,
+				SUM(CASE unattended WHEN TRUE THEN 0 ELSE 1 END) handtaken,
+				SUM(CASE unattended WHEN TRUE THEN 1 ELSE 0 END) unattended
+			FROM image
+			GROUP BY event_id
+		) counts ON event.id = counts.event_id
 		WHERE id = ?
 	`, id)
 
