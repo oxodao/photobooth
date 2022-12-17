@@ -12,6 +12,9 @@ type FrontendSettings struct {
 	KnownModes   []string            `json:"known_modes"`
 
 	CurrentMode string `json:"current_mode"`
+
+	PhotoboothVersion string `json:"photobooth_version"`
+	PhotoboothCommit  string `json:"photobooth_commit"`
 }
 
 type AdminSettings struct {

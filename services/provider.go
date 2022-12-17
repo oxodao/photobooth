@@ -38,6 +38,9 @@ func (p *Provider) GetFrontendSettings() *models.FrontendSettings {
 
 		IPAddress:  map[string][]string{},
 		KnownModes: config.MODES,
+
+		PhotoboothVersion: utils.CURRENT_VERSION,
+		PhotoboothCommit:  utils.CURRENT_COMMIT,
 	}
 
 	events, err := orm.GET.Events.GetEvents()

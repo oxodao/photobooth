@@ -35,6 +35,8 @@ export default function Debug() {
         appState.debug && <>
           {D('HWID', <span>{appState.app_state.hwid}</span>)}
           {D('Token', <span>{appState.app_state.token}</span>)}
+          {D('Version', <span>{appState.photobooth_version}</span>)}
+          {D('Commit', <span>{appState.photobooth_commit}</span>)}
         </>
       }
     </div>
