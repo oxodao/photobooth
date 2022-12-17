@@ -1,0 +1,58 @@
+---
+- hosts: all
+  tags: [pbhh]
+
+  tasks:
+    - name: Make photobooth dirs
+      become: yes
+      file:
+        path: /opt/photobooth
+        state: 'directory'
+        mode: '0777' # fck
+
+    - name: Fetching the latest release infos
+      uri:                                                               
+        url: https://api.github.com/repos/oxodao/photobooth-hwhandler/releases/latest
+        return_content: true                                             
+      register: json_reponse 
+
+    - name: Filtering on arm64
+      set_fact:
+        latest_binary: "{{json_reponse.json['assets'][1]}}" # @TODO: Filter on pbhh-(.*)-linux-arm64, @TODO even later: filter on current os's arch
+
+    - name: Downloading the latest release
+      become: yes
+      get_url:
+        url: "{{latest_binary.browser_download_url}}"
+        dest: /opt/photobooth/pbhh
+        mode: '0777'
+
+    - name: Symlink the executable
+      become: yes
+      file:
+        src: /opt/photobooth/pbhh
+        dest: /usr/bin/pbhh
+        state: link
+
+    - name: Pushing the photobooth config
+      become: yes
+      template:
+        src: templates/pbhh.yaml.j2
+        dest: /etc/photobooth_hwhandler.yaml
+        mode: 0664
+
+    - name: Pushing the service
+      become: yes
+      template:
+        src: templates/pbhh.service.j2
+        dest: /usr/lib/systemd/user/pbhh.service
+        mode: '0644'
+
+    - name: Enabling the service
+      systemd:
+        name: pbhh
+        daemon_reload: yes
+        state: started
+        enabled: yes
+        scope: user
+
