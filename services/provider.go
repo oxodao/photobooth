@@ -149,8 +149,10 @@ func Load(webapp, adminapp *fs.FS) error {
 		return token.Error()
 	}
 
+	initButtonHandler(&prv.Photobooth)
+
 	actions := map[string]mqtt.MessageHandler{
-		"photobooth/button_press":   prv.Photobooth.OnButtonPress,
+		"photobooth/button_press":   BPH.OnButtonPress,
 		"photobooth/sync":           prv.Photobooth.OnSyncRequested,
 		"photobooth/admin/set_mode": prv.Admin.OnSetMode,
 	}
