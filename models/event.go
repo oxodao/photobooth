@@ -13,3 +13,10 @@ type Event struct {
 	AmtImagesHandtaken  int `json:"amt_images_handtaken" db:"amt_images_handtaken"`
 	AmtImagesUnattended int `json:"amt_images_unattended" db:"amt_images_unattended"`
 }
+
+type ExportedEvent struct {
+	Id       int64      `json:"id" db:"id"`
+	EventId  int64      `json:"event_id" db:"event_id"`
+	Filename string     `json:"filename" db:"filename"`
+	Date     *Timestamp `json:"date" db:"date"`
+}

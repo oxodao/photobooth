@@ -5,6 +5,10 @@ import { TextLoader } from "../components/loader";
 import { AppState } from "../types/appstate";
 import { WsMessage } from "../types/ws_message";
 
+/**
+ * @TODO: Refacto lastError to have a state like in Prowty
+ */
+
 type WebsocketProps = {
     lastMessage: WsMessage | null;
     appState: AppState | null;
@@ -14,6 +18,7 @@ type WebsocketProps = {
 
 type WebsocketContextProps = WebsocketProps & {
     sendMessage: (msgType: string, data?: any | null) => void;
+    setLastError: (err: string|null) => void;
 };
 
 const defaultState: WebsocketProps = {
@@ -26,6 +31,7 @@ const defaultState: WebsocketProps = {
 const WebsocketContext = createContext<WebsocketContextProps>({
     ...defaultState,
     sendMessage: (msgType: string, data?: any) => { },
+    setLastError: () => {},
 });
 
 export default function WebsocketProvider({ children }: { children: ReactNode }) {
@@ -79,14 +85,25 @@ export default function WebsocketProvider({ children }: { children: ReactNode })
             case "ERR_MODAL":
                 newCtx.lastError = data.payload;
                 break
+            case "EXPORT_STARTED":
+                newCtx.lastError = 'Export started'
+                break
+            case "EXPORT_COMPLETED":
+                newCtx.lastError = 'Export completed'
+                break
         }
 
         setContext(newCtx)
     }, [lastMessage]);
 
+    const setLastError = (err: string|null) => {
+        setContext({...ctx, lastError: err});
+    }
+
     return <WebsocketContext.Provider value={{
         ...ctx,
         sendMessage: (msgType: string, data?: any) => sendMessage(JSON.stringify({ type: msgType, payload: data })),
+        setLastError,
     }}>
         <>
             <TextLoader loading={readyState != ReadyState.OPEN} text={connectionStatus}>

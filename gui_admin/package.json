@@ -24,7 +24,8 @@
     "react-router-dom": "^6.4.5",
     "react-use-websocket": "^4.2.0",
     "sass": "^1.56.2",
-    "sort-by": "^1.2.0"
+    "sort-by": "^1.2.0",
+    "use-async-effect": "^2.2.7"
   },
   "devDependencies": {
     "@types/react": "^18.0.26",

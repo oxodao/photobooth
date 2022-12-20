@@ -40,11 +40,13 @@ func (pb *Photobooth) OnExportEvent(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
-	err = (NewEventExporter(event)).Export()
+	pb.prv.Sockets.BroadcastAdmin("EXPORT_STARTED", event)
+
+	exportedEvent, err := (NewEventExporter(event)).Export()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	pb.prv.Sockets.BroadcastAdmin("EXPORT_COMPLETED", event)
+	pb.prv.Sockets.BroadcastAdmin("EXPORT_COMPLETED", exportedEvent)
 }

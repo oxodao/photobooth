@@ -151,6 +151,12 @@ func (s *Socket) OnMessage(msg models.SocketMessage) {
 		GET.Sockets.BroadcastState()
 	case "SHOW_DEBUG":
 		(*GET.MqttClient).Publish("photobooth/button_press", 2, false, "DISPLAY_DEBUG")
+	case "EXPORT_ZIP":
+		token := (*GET.MqttClient).Publish("photobooth/export", 2, false, fmt.Sprintf("%v", msg.Payload))
+		token.Wait()
+		if token.Error() != nil {
+			fmt.Println(token.Error())
+		}
 	case "SHUTDOWN":
 		(*GET.MqttClient).Publish("photobooth/button_press", 2, false, "SHUTDOWN")
 	case "":

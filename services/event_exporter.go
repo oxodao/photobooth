@@ -35,13 +35,13 @@ func (ee EventExporter) setEventExporting(exp bool) error {
 	return nil
 }
 
-func (ee EventExporter) Export() error {
+func (ee EventExporter) Export() (*models.ExportedEvent, error) {
 	if ee.event.Exporting {
-		return errors.New("can't export an event that is already exporting")
+		return nil, errors.New("can't export an event that is already exporting")
 	}
 
 	if err := ee.setEventExporting(true); err != nil {
-		return err
+		return nil, err
 	}
 
 	exportTime := time.Now()
@@ -50,21 +50,22 @@ func (ee EventExporter) Export() error {
 	err := utils.MakeOrCreateFolder(basepath)
 	if err != nil {
 		if err2 := ee.setEventExporting(true); err2 != nil {
-			return err
+			return nil, err
 		}
 
-		return err
+		return nil, err
 	}
 
-	filepath := utils.GetPath(basepath + exportTime.Format("20060201-150405") + ".zip")
+	basefilepath := exportTime.Format("20060201-150405") + ".zip"
+	filepath := utils.GetPath(basepath + basefilepath)
 
 	archive, err := os.Create(filepath)
 	if err != nil {
 		if err2 := ee.setEventExporting(true); err2 != nil {
-			return err
+			return nil, err
 		}
 
-		return err
+		return nil, err
 	}
 	defer archive.Close()
 
@@ -75,10 +76,10 @@ func (ee EventExporter) Export() error {
 	images, err := orm.GET.Events.GetImages(ee.event, false)
 	if err != nil {
 		if err2 := ee.setEventExporting(true); err2 != nil {
-			return err
+			return nil, err
 		}
 
-		return err
+		return nil, err
 	}
 
 	for _, i := range images {
@@ -124,36 +125,36 @@ func (ee EventExporter) Export() error {
 	err = cmd.Run()
 	if err != nil {
 		if err2 := ee.setEventExporting(false); err2 != nil {
-			return err
+			return nil, err
 		}
-		return err
+		return nil, err
 	}
 
 	fr, err := os.Open(outvid)
 	if err != nil {
 		fmt.Printf("Failed to open the recap video for the event %v: %v\n", ee.event.Id, err)
 		if err2 := ee.setEventExporting(false); err2 != nil {
-			return err
+			return nil, err
 		}
 
-		return err
+		return nil, err
 	}
 
 	fw, err := zipWriter.Create("000_recap.mp4")
 	if err != nil {
 		fmt.Printf("Failed to create the recap video for the event %v in the zip file: %v\n", ee.event.Id, err)
 		if err2 := ee.setEventExporting(false); err2 != nil {
-			return err
+			return nil, err
 		}
-		return err
+		return nil, err
 	}
 
 	if _, err := io.Copy(fw, fr); err != nil {
 		fmt.Printf("Failed to copy the recap video for the event %v in the zip file: %v\n", ee.event.Id, err)
 		if err2 := ee.setEventExporting(false); err2 != nil {
-			return err
+			return nil, err
 		}
-		return err
+		return nil, err
 	}
 
 	fr.Close()
@@ -179,21 +180,32 @@ func (ee EventExporter) Export() error {
 	if err != nil {
 		fmt.Println("Failed to add the info json")
 		if err2 := ee.setEventExporting(false); err2 != nil {
-			return err
+			return nil, err
 		}
-		return err
+		return nil, err
 	}
 
 	if _, err := io.Copy(fw, bytes.NewReader(jsonData)); err != nil {
 		fmt.Printf("Failed to copy the info json for the event %v in the zip file: %v\n", ee.event.Id, err)
 		if err2 := ee.setEventExporting(false); err2 != nil {
-			return err
+			return nil, err
 		}
-		return err
+		return nil, err
 	}
 	//#endregion
 
 	exportTimestamp := models.Timestamp(exportTime)
 	ee.event.LastExport = &exportTimestamp
-	return ee.setEventExporting(false)
+	err = ee.setEventExporting(false)
+	if err != nil {
+		return nil, err
+	}
+
+	// Insert the built
+	exportedEvent, err := orm.GET.Events.InsertExportedEvent(ee.event, basefilepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return exportedEvent, nil
 }

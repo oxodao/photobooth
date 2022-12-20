@@ -3,6 +3,7 @@
 
 -- Do not use /* */ or // comments as this will break too
 
+DROP TABLE IF EXISTS exported_event;
 DROP TABLE IF EXISTS image;
 DROP TABLE IF EXISTS event;
 
@@ -23,6 +24,13 @@ CREATE TABLE image (
     event_id INTEGER NOT NULL REFERENCES event(id),
     unattended BOOLEAN NOT NULL DEFAULT 0 CHECK (unattended IN (0, 1)),
     created_at datetime NOT NULL
+);
+
+CREATE TABLE exported_event (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER REFERENCES event(id),
+    filename VARCHAR(512) NOT NULL,
+    date datetime NOT NULL
 );
 
 CREATE TABLE app_state (

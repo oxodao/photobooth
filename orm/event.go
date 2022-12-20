@@ -177,3 +177,69 @@ func (e *Events) InsertImage(eventId int64, unattended bool) (*models.Image, err
 
 	return &img, nil
 }
+
+func (e *Events) InsertExportedEvent(event *models.Event, filename string) (*models.ExportedEvent, error) {
+	currTime := time.Now().Unix()
+
+	row := e.db.QueryRowx(`
+		INSERT INTO exported_event(event_id, filename, date)
+		VALUES (?, ?, ?)
+		RETURNING *
+	`, event.Id, filename, currTime)
+	if row.Err() != nil {
+		return nil, row.Err()
+	}
+
+	exportedEvent := models.ExportedEvent{}
+	err := row.StructScan(&exportedEvent)
+	if err != nil {
+		return nil, err
+	}
+
+	return &exportedEvent, nil
+}
+
+func (e *Events) GetExportedEvent(exportedEventId int64) (*models.ExportedEvent, error) {
+	row := e.db.QueryRowx(`
+		SELECT id, event_id, filename, date
+		FROM exported_event
+		WHERE id = ?
+	`, exportedEventId)
+
+	if row.Err() != nil {
+		return nil, row.Err()
+	}
+
+	exportedEvent := models.ExportedEvent{}
+	err := row.StructScan(&exportedEvent)
+
+	return &exportedEvent, err
+}
+
+func (e *Events) GetExportedEvents(event *models.Event, limit int64) ([]models.ExportedEvent, error) {
+	exportedEvents := []models.ExportedEvent{}
+
+	rows, err := e.db.Queryx(`
+		SELECT id, event_id, filename, date
+		FROM exported_event
+		WHERE event_id = ?
+		ORDER BY date desc
+		LIMIT ?
+	`, event.Id, limit)
+
+	if err != nil {
+		return exportedEvents, err
+	}
+
+	for rows.Next() {
+		exportedEvent := models.ExportedEvent{}
+		err := rows.StructScan(&exportedEvent)
+		if err != nil {
+			return exportedEvents, err
+		}
+
+		exportedEvents = append(exportedEvents, exportedEvent)
+	}
+
+	return exportedEvents, nil
+}
