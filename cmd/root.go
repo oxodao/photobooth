@@ -41,6 +41,13 @@ var rootCmd = &cobra.Command{
 			fmt.Println("Initializing the photobooth with id ", as.HardwareID)
 		}
 
+		err = orm.GET.Events.ClearExporting()
+		if err != nil {
+			fmt.Println("Failed to clear event exporting.")
+			fmt.Println("Some event might be in a wrong state...")
+			fmt.Println(err)
+		}
+
 		r := mux.NewRouter()
 
 		r.PathPrefix("/media/photobooth").Handler(http.StripPrefix("/media/photobooth", http.FileServer(http.Dir(utils.GetPath("images")))))

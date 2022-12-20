@@ -157,6 +157,7 @@ func Load(webapp, adminapp *fs.FS) error {
 	actions := map[string]mqtt.MessageHandler{
 		"photobooth/button_press":   BPH.OnButtonPress,
 		"photobooth/sync":           prv.Photobooth.OnSyncRequested,
+		"photobooth/export":         prv.Photobooth.OnExportEvent,
 		"photobooth/admin/set_mode": prv.Admin.OnSetMode,
 	}
 

@@ -27,3 +27,6 @@ set-mode-quiz:
 
 set-mode-disabled:
 	docker compose exec mosquitto mosquitto_pub -h 127.0.0.1 -t photobooth/admin/set_mode -m "DISABLED"
+
+export-first-event:
+	docker compose exec mosquitto mosquitto_pub -h 127.0.0.1 -t photobooth/export -m 1

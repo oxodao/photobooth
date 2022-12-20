@@ -13,7 +13,9 @@ CREATE TABLE event (
     name VARCHAR(512) NOT NULL,
     date datetime NOT NULL,
     author VARCHAR(512) NOT NULL,
-    location VARCHAR(512) NULL
+    location VARCHAR(512) NULL,
+    exporting BOOLEAN NOT NULL DEFAULT FALSE,
+    last_export datetime NULL
 );
 
 CREATE TABLE image (
