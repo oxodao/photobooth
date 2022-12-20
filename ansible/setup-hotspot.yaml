@@ -1,0 +1,74 @@
+---
+- hosts: all
+  become: yes
+  tags: [hotspot]
+
+  tasks:
+    # rfkill is added just so that if we setup on a non-rpi machine this does not cause issues
+    - name: Install hotspot softwares
+      apt:
+        name: [ rfkill, dnsmasq, hostapd, firmware-ralink, bridge-utils ]
+
+    - name: Setting up interfaces
+      template:
+        src: templates/interfaces.j2
+        dest: /etc/network/interfaces
+
+    - name: Enabling ipv4 forwarding
+      ansible.posix.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        sysctl_set: yes
+        reload: yes
+        state: present
+
+    - name: Adding wifi unblocker
+      copy:
+        src: files/rfkill-unblock.service
+        dest: /etc/systemd/system/rfkill-unblock.service
+        mode: 0774
+
+    - name: Enabling rfkill unblocker
+      systemd:
+        name: rfkill-unblock.service
+        daemon_reload: yes
+        state: started
+        enabled: yes
+
+    - name: Setting up dnsmasq
+      template:
+        src: templates/dnsmasq.conf.j2
+        dest: /etc/dnsmasq.conf
+        mode: '0644'
+
+    - name: Adding the hosts
+      lineinfile:
+        path: /etc/hosts
+        line: '10.0.12.1 {{hotspot_dns_name}}'
+
+    - name: Enabling dnsmasq
+      systemd:
+        name: dnsmasq
+        daemon_reload: yes
+        state: started
+        enabled: yes
+
+    - name: Make hostapd dirs
+      file:
+        path: /etc/hostapd
+        state: 'directory'
+        mode: '0766'
+
+    - name: Setting up hostapd
+      template:
+        src: templates/hostapd.conf.j2
+        dest: /etc/hostapd/hostapd.conf
+        mode: '0644'
+
+    - name: Enabling the hostapd service
+      systemd:
+        name: hostapd
+        daemon_reload: yes
+        state: started
+        enabled: yes
+        masked: false

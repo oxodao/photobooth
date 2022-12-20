@@ -3,4 +3,5 @@
 - import_playbook: setup-mosquitto.yaml
 - import_playbook: setup-photobooth.yaml
 - import_playbook: setup-pbhh.yaml
+- import_playbook: setup-hotspot.yaml
 - import_playbook: setup-xorg.yaml

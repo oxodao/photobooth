@@ -1,2 +1,6 @@
-- geerlingguy.ntp
-- staticdev.firefox
+roles:
+  - geerlingguy.ntp
+  - staticdev.firefox
+
+collections:
+  - ansible.posix
