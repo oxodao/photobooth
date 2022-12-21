@@ -9,6 +9,14 @@ export type Event = {
     amt_images_unattended: number;
 };
 
+export type EditedEvent = {
+    id?: number;
+    name?: string|null;
+    author?: string|null;
+    date?: number;
+    location?: string|null;
+}
+
 type appstate = {
     hwid: string;
     token: string;
