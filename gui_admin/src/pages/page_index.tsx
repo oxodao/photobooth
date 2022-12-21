@@ -23,7 +23,7 @@ export default function PageIndex() {
     const { sendMessage, appState, currentTime } = useWebsocket();
 
     const [knownEvents, setKnownEvents] = useState<Event[]>([]);
-    const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
+    const [currentEvent, setCurrentEvent] = useState<string>('');
     const [modes, setModes] = useState<string[]>([]);
 
     const [newEvent, setNewEvent] = useState<Event | null>(null);
@@ -32,14 +32,16 @@ export default function PageIndex() {
     useEffect(() => {
         if (!appState) {
             setModes([]);
-            setCurrentEvent(null);
+            setCurrentEvent('');
             setKnownEvents([]);
             return;
         }
 
         setKnownEvents(appState.known_events);
         setModes(appState.known_modes);
-        setCurrentEvent(appState.app_state.current_event);
+        if (!!appState.app_state?.current_event) {
+            setCurrentEvent('' + appState.app_state.current_event.id);
+        }
     }, [appState]);
 
     const setMode = (evt: SelectChangeEvent) => sendMessage('SET_MODE', evt.target.value);
@@ -47,7 +49,7 @@ export default function PageIndex() {
     const setEvent = (evt: SelectChangeEvent) => {
         const events = knownEvents.filter(x => x.id === (evt.target.value as unknown as number)); // wow such typescript
         if (events.length > 0) {
-            if (!currentEvent) {
+            if ((currentEvent ?? '') === '') {
                 sendMessage('SET_EVENT', events[0].id);
             } else {
                 setNewEvent(events[0]);
@@ -58,31 +60,37 @@ export default function PageIndex() {
     const submitDatetime = () => sendMessage('SET_DATETIME', DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'));
 
     return <App>
-        <Card>
-            <CardContent>
-                <Typography variant="h2" fontSize={18}>Current event</Typography>
-                {
-                    <Select value={!!currentEvent ? "" + currentEvent.id : ""} label="Event" onChange={setEvent} style={{ marginTop: '1em' }}>
-                        {
-                            knownEvents.map(x => <MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)
-                        }
-                    </Select>
-                }
-            </CardContent>
-        </Card>
-        <Card>
-            <CardContent>
-                <Typography variant="h2" fontSize={18}>Mode</Typography>
-                {
-                    appState?.current_mode &&
-                    <Select value={appState.current_mode} label="Mode" onChange={setMode} style={{ marginTop: '1em' }}>
-                        {
-                            modes.map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)
-                        }
-                    </Select>
-                }
-            </CardContent>
-        </Card>
+        {
+            knownEvents.length > 0
+            && <Card>
+                <CardContent>
+                    <Typography variant="h2" fontSize={18}>Current event</Typography>
+                    {
+                        <Select value={currentEvent} label="Event" onChange={setEvent} style={{ marginTop: '1em' }}>
+                            {
+                                knownEvents.map(x => <MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)
+                            }
+                        </Select>
+                    }
+                </CardContent>
+            </Card>
+        }
+        {
+            !!modes && modes.length > 0 
+            && <Card>
+                <CardContent>
+                    <Typography variant="h2" fontSize={18}>Mode</Typography>
+                    {
+                        appState?.current_mode &&
+                        <Select value={appState.current_mode} label="Mode" onChange={setMode} style={{ marginTop: '1em' }}>
+                            {
+                                modes.map(x => <MenuItem key={x} value={x}>{x}</MenuItem>)
+                            }
+                        </Select>
+                    }
+                </CardContent>
+            </Card>
+        }
         <Card>
             <CardContent>
                 <Typography variant="h2" fontSize={18}>System time</Typography>
@@ -116,8 +124,8 @@ export default function PageIndex() {
                 <Button onClick={() => {
                     sendMessage('SET_EVENT', newEvent?.id);
                     setNewEvent(null);
-                }} autoFocus>Change event</Button>
-            </DialogActions>
+                }} color="warning" autoFocus>Change event</Button>
+        </DialogActions>
         </Dialog>
 
         <Dialog open={shutdown} onClose={() => setShutdown(false)}>

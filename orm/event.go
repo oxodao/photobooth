@@ -27,9 +27,9 @@ func (e *Events) GetEvents() ([]models.Event, error) {
 	// @TODO created_at && order by created_at desc
 	// @TODO rewrite with no subquery
 	rows, err := e.db.Queryx(`
-		SELECT id, name, date, author, location, exporting, last_export, counts.handtaken amt_images_handtaken, counts.unattended amt_images_unattended
+		SELECT id, name, date, author, location, exporting, last_export, COALESCE(counts.handtaken, 0) amt_images_handtaken, COALESCE(counts.unattended, 0) amt_images_unattended
 		FROM event
-		INNER JOIN (
+		LEFT JOIN (
 			SELECT event_id,
 				SUM(CASE unattended WHEN TRUE THEN 0 ELSE 1 END) handtaken,
 				SUM(CASE unattended WHEN TRUE THEN 1 ELSE 0 END) unattended
