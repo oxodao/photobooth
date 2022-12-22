@@ -9,12 +9,12 @@ import LogoutIcon from '@mui/icons-material/Logout';
 
 
 import { useWebsocket } from '../hooks/ws';
-import { useAuth } from '../hooks/auth';
+import { useApi } from '../hooks/auth';
 import CustomDrawer from '../components/drawer';
 import { Stack } from '@mui/material';
 
 function App({ children }: { children: ReactNode }) {
-  const { logout } = useAuth();
+  const { logout } = useApi();
   const [menuOpened, setMenuOpened] = useState<boolean>(false);
   const { appState } = useWebsocket();
 

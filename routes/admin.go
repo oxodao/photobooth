@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/mattn/go-sqlite3"
 	"github.com/oxodao/photobooth/models"
 	"github.com/oxodao/photobooth/orm"
 	"github.com/oxodao/photobooth/services"
@@ -25,7 +27,10 @@ func registerAdminRoutes(r *mux.Router) {
 	r.HandleFunc("/exports/{export_id}/download", downloadExport).Methods(http.MethodGet)
 
 	eventRouter := r.PathPrefix("/event/{event}").Subrouter()
+	r.HandleFunc("/event", createEvent).Methods(http.MethodPost)
 	eventRouter.Use(WithEventMiddleware)
+
+	eventRouter.HandleFunc("", updateEvent).Methods(http.MethodPut)
 
 	imageRouter := eventRouter.PathPrefix("/image/{image}").Subrouter()
 	imageRouter.Use(WithImageMiddleware)
@@ -40,6 +45,75 @@ func isPasswordValid(w http.ResponseWriter, r *http.Request) {
 func setMode(w http.ResponseWriter, r *http.Request) {
 	values := mux.Vars(r)
 	(*services.GET.MqttClient).Publish("photobooth/admin/set_mode", 2, false, values["mode"])
+}
+
+type UpdatedEvent struct {
+	Name     string  `json:"name"`
+	Author   *string `json:"author"`
+	Location *string `json:"location"`
+	Date     *int64  `json:"date"`
+}
+
+func createEvent(w http.ResponseWriter, r *http.Request) {
+	updatedEvent := UpdatedEvent{}
+	err := json.NewDecoder(r.Body).Decode(&updatedEvent)
+	if err != nil {
+		fmt.Println("Failed to parse new event: ", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	evt, err := orm.GET.Events.CreateEvent(updatedEvent.Name, updatedEvent.Author, updatedEvent.Location, updatedEvent.Date)
+	if err != nil {
+		if err == sqlite3.ErrConstraint {
+			w.WriteHeader(http.StatusBadRequest)
+			data, _ := json.MarshalIndent("Some data are missing", "", "  ")
+			w.Write(data)
+			fmt.Println("Missing something: ", err)
+			return
+		}
+
+		fmt.Println("Failed to save new event in DB: ", err)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	services.GET.Sockets.BroadcastState()
+
+	data, _ := json.MarshalIndent(evt, "", "  ")
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+}
+
+func updateEvent(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	event := ctx.Value(ContextEventKey).(*models.Event)
+
+	updatedEvent := UpdatedEvent{}
+	err := json.NewDecoder(r.Body).Decode(&updatedEvent)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Println(err)
+		return
+	}
+
+	event.Name = updatedEvent.Name
+	event.Author = updatedEvent.Author
+	event.Location = updatedEvent.Location
+	if updatedEvent.Date != nil {
+		date := models.Timestamp(time.Unix(*updatedEvent.Date, 0))
+		event.Date = &date
+	}
+
+	err = orm.GET.Events.Save(event)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Println("Failed to save an updated event: ", err)
+		return
+	}
+
+	services.GET.Sockets.BroadcastState()
 }
 
 func serveImage(w http.ResponseWriter, r *http.Request) {

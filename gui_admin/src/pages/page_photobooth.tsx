@@ -1,6 +1,7 @@
 import { Button, Card, CardActions, CardContent, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper, Table, TableBody, TableCell, TableContainer, TableHead, Typography } from "@mui/material";
 import { useState } from "react";
 import ExportListing from "../components/export_listing";
+import EventEditor from "../components/event_editor";
 import { useWebsocket } from "../hooks/ws";
 import App from "./App";
 
@@ -15,7 +16,7 @@ export default function PagePhotobooth() {
         <Card>
             <CardContent>
                 <Typography variant="h2" fontSize={18}>
-                    Current event:  { !!appState?.app_state.current_event && <>{appState?.app_state.current_event?.name}</> }
+                    Current event:  {!!appState?.app_state.current_event && <>{appState?.app_state.current_event?.name}</>}
                 </Typography>
                 <ul>
                     <li>Amount of picture handtaken: {appState?.app_state?.current_event?.amt_images_handtaken}</li>
@@ -29,8 +30,8 @@ export default function PagePhotobooth() {
             </CardActions>
         </Card>
         {
-            !!appState?.app_state?.current_event 
-            && <ExportListing /> 
+            !!appState?.app_state?.current_event
+            && <ExportListing />
         }
     </App>
 }

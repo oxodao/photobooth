@@ -4,6 +4,7 @@ import useWebSocket, { ReadyState } from "react-use-websocket";
 import { TextLoader } from "../components/loader";
 import { AppState } from "../types/appstate";
 import { WsMessage } from "../types/ws_message";
+import { useApi } from "./auth";
 
 /**
  * @TODO: Refacto lastError to have a state like in Prowty
@@ -13,32 +14,30 @@ type WebsocketProps = {
     lastMessage: WsMessage | null;
     appState: AppState | null;
     currentTime: string | null;
-    lastError: string | null
 };
 
 type WebsocketContextProps = WebsocketProps & {
     sendMessage: (msgType: string, data?: any | null) => void;
-    setLastError: (err: string|null) => void;
 };
 
 const defaultState: WebsocketProps = {
     lastMessage: null,
     appState: null,
     currentTime: null,
-    lastError: null,
 };
 
 const WebsocketContext = createContext<WebsocketContextProps>({
     ...defaultState,
-    sendMessage: (msgType: string, data?: any) => { },
-    setLastError: () => {},
+    sendMessage: () => { },
 });
 
 export default function WebsocketProvider({ children }: { children: ReactNode }) {
-    const HOST = `ws://${window.location.host}/api/socket/admin`
     const [killSwitch, setKillswitch] = useState<number>(-1);
-    const { sendMessage, lastMessage, readyState } = useWebSocket(HOST);
+    const {showError} = useApi();
     const [ctx, setContext] = useState<WebsocketProps>(defaultState);
+
+    const HOST = `ws://${window.location.host}/api/socket/admin`
+    const { sendMessage, lastMessage, readyState } = useWebSocket(HOST);
 
     useEffect(() => {
         if ([
@@ -83,38 +82,27 @@ export default function WebsocketProvider({ children }: { children: ReactNode })
                 newCtx.appState = data.payload;
                 break
             case "ERR_MODAL":
-                newCtx.lastError = data.payload;
+                showError(data.payload, 'error');
                 break
             case "EXPORT_STARTED":
-                newCtx.lastError = 'Export started'
+                showError('Export started', 'info');
                 break
             case "EXPORT_COMPLETED":
-                newCtx.lastError = 'Export completed'
+                showError('Export completed', 'success');
                 break
         }
 
         setContext(newCtx)
     }, [lastMessage]);
 
-    const setLastError = (err: string|null) => {
-        setContext({...ctx, lastError: err});
-    }
-
     return <WebsocketContext.Provider value={{
         ...ctx,
         sendMessage: (msgType: string, data?: any) => sendMessage(JSON.stringify({ type: msgType, payload: data })),
-        setLastError,
     }}>
         <>
             <TextLoader loading={readyState != ReadyState.OPEN} text={connectionStatus}>
                 {children}
             </TextLoader>
-
-            <Snackbar open={!!ctx.lastError} autoHideDuration={6000} onClose={() => setContext({ ...ctx, lastError: null })} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
-                <Alert onClose={() => setContext({ ...ctx, lastError: null })} severity="error" sx={{ width: '100%' }}>
-                    {ctx.lastError}
-                </Alert>
-            </Snackbar>
         </>
     </WebsocketContext.Provider>
 }

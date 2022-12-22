@@ -84,6 +84,26 @@ func (e *Events) GetEvent(id int64) (*models.Event, error) {
 	return &evt, err
 }
 
+func (e *Events) CreateEvent(name string, author, location *string, date *int64) (*models.Event, error) {
+	row := e.db.QueryRowx(`
+		INSERT INTO event (name, date, author, location)
+		VALUES (?, ?, ?, ?)
+		RETURNING *
+	`, name, date, author, location)
+
+	if row.Err() != nil {
+		return nil, row.Err()
+	}
+
+	var event models.Event = models.Event{}
+	err := row.StructScan(&event)
+	if err != nil {
+		return nil, err
+	}
+
+	return &event, nil
+}
+
 func (e *Events) Save(event *models.Event) error {
 	var date int64 = 0
 	if event.Date != nil {

@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 
-import { Box, Button, Card, CardActions, CardContent, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, MenuItem, Modal, Select, SelectChangeEvent, Typography } from "@mui/material";
+import { Button, Card, CardActions, CardContent, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, MenuItem, Select, SelectChangeEvent, Typography, IconButton } from "@mui/material";
 import { DateTime } from 'luxon';
 
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+
 import { useWebsocket } from "../hooks/ws";
-import { Event } from '../types/appstate';
+import { EditedEvent, Event } from '../types/appstate';
 import App from "./App";
+import EventEditor from "../components/event_editor";
 
 const style = {
     position: 'absolute' as 'absolute',
@@ -23,16 +27,20 @@ export default function PageIndex() {
     const { sendMessage, appState, currentTime } = useWebsocket();
 
     const [knownEvents, setKnownEvents] = useState<Event[]>([]);
+    const [currentEventInst, setCurrentEventInst] = useState<Event|null>(null);
     const [currentEvent, setCurrentEvent] = useState<string>('');
     const [modes, setModes] = useState<string[]>([]);
 
     const [newEvent, setNewEvent] = useState<Event | null>(null);
     const [shutdown, setShutdown] = useState<boolean>(false);
 
+    const [editedEvent, setEditedEvent] = useState<EditedEvent | null>(null);
+
     useEffect(() => {
         if (!appState) {
             setModes([]);
             setCurrentEvent('');
+            setCurrentEventInst(null);
             setKnownEvents([]);
             return;
         }
@@ -40,6 +48,7 @@ export default function PageIndex() {
         setKnownEvents(appState.known_events);
         setModes(appState.known_modes);
         if (!!appState.app_state?.current_event) {
+            setCurrentEventInst(appState.app_state.current_event);
             setCurrentEvent('' + appState.app_state.current_event.id);
         }
     }, [appState]);
@@ -73,6 +82,10 @@ export default function PageIndex() {
                         </Select>
                     }
                 </CardContent>
+                <CardActions style={{justifyContent: 'center'}}>
+                    <IconButton color="primary" onClick={() => setEditedEvent({})}><AddIcon /></IconButton>
+                    <IconButton color="warning" onClick={() => setEditedEvent(currentEventInst)}><EditIcon /></IconButton>
+                </CardActions>
             </Card>
         }
         {
@@ -141,5 +154,10 @@ export default function PageIndex() {
                 }} color="error" autoFocus>Shutdown</Button>
             </DialogActions>
         </Dialog>
+
+        {
+            editedEvent &&
+            <EventEditor event={editedEvent} hide={() => setEditedEvent(null)} />
+        }
     </App>;
 }

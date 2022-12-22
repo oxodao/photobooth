@@ -3,14 +3,13 @@ import { DateTime } from "luxon";
 import { useState } from "react";
 import DownloadIcon from '@mui/icons-material/Download'
 import useAsyncEffect from "use-async-effect";
-import { useAuth } from "../hooks/auth";
+import { useApi } from "../hooks/auth";
 import { useWebsocket } from "../hooks/ws";
 import { EventExport } from "../types/event_export";
 
 export default function ExportListing() {
-    const { password } = useAuth();
-    const { getLastExports } = useAuth();
-    const { appState, sendMessage, lastMessage, setLastError } = useWebsocket();
+    const { password, showError, getLastExports } = useApi();
+    const { appState, sendMessage, lastMessage } = useWebsocket();
     const [exportZipShown, setExportZipShown] = useState<boolean>(false);
 
     const [downloadInProgress, setDownloadInProgress] = useState<boolean>(false);
@@ -50,14 +49,19 @@ export default function ExportListing() {
                 `/api/admin/exports/${id}/download`,
                 { 'headers': { 'Authorization': password ?? '' } }
             );
+            if (resp.status != 200) {
+                throw 'Failed to download file';
+            }
+
             const filename = resp.headers.get('Content-Disposition')?.split('filename=')[1] ?? 'photobooth.zip';
             const data = await resp.blob();
             const anchor = document.createElement('a');
+
             anchor.download = filename;
             anchor.href = window.URL.createObjectURL(data);
             anchor.click();
         } catch (e) {
-            setLastError('An error has occured: ' + e)
+            showError('An error has occured: ' + e, 'error');
         }
         setDownloadInProgress(false);
     };
