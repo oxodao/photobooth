@@ -54,7 +54,12 @@ func (c *Config) GetImageFolder(eventId int64, unattended bool) (string, error) 
 		subfolder = "unattended"
 	}
 
-	path := filepath.Join(c.RootPath, "images", fmt.Sprintf("%v", eventId), subfolder)
+	folderName := fmt.Sprintf("%v", eventId)
+	if eventId < 0 {
+		folderName = "NO_EVENT"
+	}
+
+	path := filepath.Join(c.RootPath, "images", folderName, subfolder)
 	err := os.MkdirAll(path, os.ModePerm)
 	if err != nil {
 		return "", err
