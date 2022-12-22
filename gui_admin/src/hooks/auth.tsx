@@ -1,69 +1,67 @@
+import { Alert, AlertColor, Snackbar } from "@mui/material";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import Login from "../pages/Login";
 import { EventExport } from "../types/event_export";
+import { SnackbarData } from "../types/SnackbarData";
 
-type AuthProps = {
-    connecting: boolean;
-    password: string | null;
-    lastAuthError: string | null;
+const buildSnackbarMessage = (message: string, type: AlertColor = 'error') => {
+    return { message, open: true, type };
 };
 
-type AuthContextProps = AuthProps & {
+type ApiProps = {
+    connecting: boolean;
+    password: string | null;
+    snackbarMessage: SnackbarData | null;
+};
+
+type ApiContextProps = ApiProps & {
     connect: (password: string) => void;
     getLastExports: (eventId: number) => Promise<EventExport[]>;
     logout: () => void;
+    showError: (message: string, type: AlertColor) => void;
 };
 
-const defaultState: AuthProps = {
+const defaultState: ApiProps = {
     connecting: false,
-    password: null,
-    lastAuthError: null,
+    password: localStorage.getItem('password'),
+    snackbarMessage: null,
 };
 
-const AuthContext = createContext<AuthContextProps>({
+const ApiContext = createContext<ApiContextProps>({
     ...defaultState,
     connect: () => { },
     logout: () => { },
     getLastExports: async () => [],
+    showError: () => {},
 });
 
-export default function AuthProvider({ children }: { children: ReactNode }) {
-    const [ctx, setContext] = useState<AuthProps>(defaultState);
-
-    useEffect(() => {
-        const password = localStorage.getItem('password');
-        if (!!password) {
-            setContext({ ...ctx, password });
-        }
-    }, []);
+export default function ApiProvider({ children }: { children: ReactNode }) {
+    const [ctx, setContext] = useState<ApiProps>(defaultState);
 
     const connect = async (password: string) => {
         setContext({ ...ctx, connecting: true });
-
-        const newCtx = { ...ctx, connecting: false };
 
         const resp = await fetch(`/api/admin/login`, {
             'method': 'POST',
             'headers': {
                 'Authorization': password,
             }
-        })
+        });
 
         if (resp.status === 401) {
-            newCtx.lastAuthError = 'Wrong password';
+            setContext({ ...ctx, snackbarMessage: buildSnackbarMessage('Wrong password !') });
+            return;
         } else {
             const data = await resp.text();
 
             if (data !== 'yes') {
-                newCtx.lastAuthError = 'Wrong response from the photobooth';
+                setContext({ ...ctx, snackbarMessage: buildSnackbarMessage('Wrong response from the photobooth') })
+                return;
             } else {
                 localStorage.setItem('password', password);
-                newCtx.lastAuthError = null;
-                newCtx.password = password;
+                setContext({ ...ctx, snackbarMessage: null, password });
             }
         }
-
-        setContext(newCtx);
     };
 
     const logout = () => {
@@ -71,18 +69,16 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         setContext({ ...ctx, password: null });
     };
 
+    const showError = (message: string, severity: AlertColor = 'error') => setContext({...ctx, snackbarMessage: buildSnackbarMessage(message, severity)});
+
     const getLastExports = async (eventId: number) => {
-        console.log("Fetching exports")
         const resp = await fetch(`/api/admin/exports/${eventId}`, {
             'method': 'GET',
             'headers': { 'Authorization': ctx.password ?? '' }
         });
 
-
-        const newCtx = {...ctx};
         if (resp.status === 401) {
-            newCtx.lastAuthError = 'Session expired';
-            newCtx.password = null;
+            setContext({ ...ctx, password: null, snackbarMessage: buildSnackbarMessage('Session expired') });
         } else {
             return await resp.json();
         }
@@ -90,18 +86,41 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         return [];
     };
 
-    return <AuthContext.Provider value={{
+    const closeSnackbar = () => {
+        const newCtx = {...ctx, snackbarMessage: null};
+        
+        if (!!ctx.snackbarMessage) {
+            // fck ts sometimes
+            // @ts-ignore
+            newCtx.snackbarMessage = {...ctx.snackbarMessage, open: false};
+        }
+
+        setContext(newCtx);
+    }
+
+    return <ApiContext.Provider value={{
         ...ctx,
         connect,
         logout,
+        showError,
         getLastExports,
     }}>
-        {(!!ctx.password && !ctx.lastAuthError) && <>{children}</>}
+        <>
+            {(!!ctx.password && (!ctx.snackbarMessage?.open)) && <>{children}</>}
 
-        {(!ctx.password || !!ctx.lastAuthError) && <Login />}
-    </AuthContext.Provider>
+            {(!ctx.password || !!(ctx.snackbarMessage?.open)) && <Login />}
+
+            <Snackbar open={!!ctx.snackbarMessage?.open} autoHideDuration={6000} onClose={closeSnackbar} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+                <Alert onClose={closeSnackbar} severity={ctx.snackbarMessage?.type} sx={{ width: '100%' }}>
+                    {
+                        ctx.snackbarMessage?.message
+                    }
+                </Alert>
+            </Snackbar>
+        </>
+    </ApiContext.Provider>
 }
 
-export function useAuth(): AuthContextProps {
-    return useContext<AuthContextProps>(AuthContext);
+export function useApi(): ApiContextProps {
+    return useContext<ApiContextProps>(ApiContext);
 }

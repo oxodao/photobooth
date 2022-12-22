@@ -6,7 +6,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterLuxon } from '@mui/x-date-pickers/AdapterLuxon';
 import { createHashRouter, RouterProvider } from "react-router-dom";
 
-import AuthProvider from './hooks/auth'
+import ApiProvider from './hooks/auth'
 import WebsocketProvider from './hooks/ws'
 
 import './assets/css/index.scss'
@@ -40,11 +40,11 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <LocalizationProvider dateAdapter={AdapterLuxon}>
-        <AuthProvider>
+        <ApiProvider>
           <WebsocketProvider>
             <RouterProvider router={router} />
           </WebsocketProvider>
-        </AuthProvider>
+        </ApiProvider>
       </LocalizationProvider>
     </ThemeProvider>
   </React.StrictMode>,

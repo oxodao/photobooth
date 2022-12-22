@@ -1,9 +1,11 @@
+import React, { useEffect, useState } from "react";
 import { Button, Dialog, DialogContent, DialogTitle, TextField } from "@mui/material";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterLuxon } from "@mui/x-date-pickers/AdapterLuxon";
 import { DateTime } from "luxon";
-import React, { useEffect, useState } from "react";
 import { EditedEvent } from "../types/appstate";
+import { useWebsocket } from "../hooks/ws";
+import { useApi } from "../hooks/auth";
 
 import '../assets/css/event_editor.scss';
 
@@ -13,6 +15,7 @@ type Props = {
 };
 
 export default function EventEditor({ event, hide }: Props) {
+    const { password, showError } = useApi();
     const [evt, setEvent] = useState<EditedEvent>(event);
 
     const [date, setDate] = useState<DateTime | null>(null);
@@ -34,7 +37,38 @@ export default function EventEditor({ event, hide }: Props) {
 
     const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        console.log(evt);
+
+        const query = {
+            name: evt.name,
+            author: evt.author,
+            location: evt.location,
+            date: evt.date,
+        };
+
+        (async () => {
+            try {
+                const resp = await fetch(
+                    '/api/admin/event' + (!!event.id ? `/${event.id}` : ''),
+                    {
+                        method: !!event.id ? 'PUT' : 'POST',
+                        headers: {
+                            'Authorization': password ?? '',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(query),
+                    }
+                );
+
+                if (resp.status !== 200) {
+                    throw await resp.json();
+                }
+
+                hide();
+            } catch (e) {
+                showError('An error has occured: ' + e, 'error');
+            }
+        })();
+
         return false;
     };
 
