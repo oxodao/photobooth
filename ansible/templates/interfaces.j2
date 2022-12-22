@@ -1,8 +1,8 @@
-auto lo br0
+auto lo
 iface lo inet loopback
 
 allow-hotplug {{ethernet_interface}}
-iface {{ethernet_interface}} inet manual
+iface {{ethernet_interface}} inet dhcp
 
 allow-hotplug {{hotspot_interface}}
 iface {{hotspot_interface}} inet static
@@ -10,6 +10,3 @@ iface {{hotspot_interface}} inet static
   netmask 255.255.255.0
   network 10.0.12.0
   broadcast 10.0.12.255
-
-iface br0 inet dhcp
-bridge_ports {{ethernet_interface}} {{hotspot_interface}}

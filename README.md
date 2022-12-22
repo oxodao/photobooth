@@ -25,7 +25,9 @@ $ nvim inventories/hosts
 photobooth ansible_user=raspberry ansible_password=[[ YOUR RPI PASSWORD ]] ansible_host=[[ YOUR RPI ADDRESS ]] ansible_port=22
 ```
 
-Change the password for the admin app and optionally the other config in `ansible/inventories/group_vars/all.yml`
+You can add as many hosts as you have photobooth built. You then need to setup the config in the `ansible/inventories/host_vars/{HOST_NAME}.yml` file.
+
+Additional settings are possible, defaults values are set in `ansible/inventories/group_vars/all.yml`. You should not edit this file, rather copy the values in the host file and update the value to the ones you want.
 
 Once done you can process with the ansible script:
 ```sh
