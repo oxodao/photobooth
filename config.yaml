@@ -18,6 +18,9 @@ photobooth:
   # If you have an hardware flash this should be set to true
   # Hardware flash are controlled by the arduino
   hardware_flash: false
+  webcam_resolution:
+    width: 1280
+    height: 720
 
   # Default timer before taking a picture
   default_timer: 3

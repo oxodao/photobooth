@@ -27,7 +27,7 @@ export default function PageIndex() {
     const { sendMessage, appState, currentTime } = useWebsocket();
 
     const [knownEvents, setKnownEvents] = useState<Event[]>([]);
-    const [currentEventInst, setCurrentEventInst] = useState<Event|null>(null);
+    const [currentEventInst, setCurrentEventInst] = useState<Event | null>(null);
     const [currentEvent, setCurrentEvent] = useState<string>('');
     const [modes, setModes] = useState<string[]>([]);
 
@@ -56,7 +56,13 @@ export default function PageIndex() {
     const setMode = (evt: SelectChangeEvent) => sendMessage('SET_MODE', evt.target.value);
 
     const setEvent = (evt: SelectChangeEvent) => {
-        const events = knownEvents.filter(x => x.id === (evt.target.value as unknown as number)); // wow such typescript
+        const newId = (evt.target.value as unknown as number);
+        if (newId === appState?.app_state.current_event?.id) {
+            return;
+        }
+
+        const events = knownEvents.filter(x => x.id === newId); // wow such typescript
+
         if (events.length > 0) {
             if ((currentEvent ?? '') === '') {
                 sendMessage('SET_EVENT', events[0].id);
@@ -69,27 +75,29 @@ export default function PageIndex() {
     const submitDatetime = () => sendMessage('SET_DATETIME', DateTime.now().toFormat('yyyy-MM-dd HH:mm:ss'));
 
     return <App>
+        <Card>
+            <CardContent>
+                <Typography variant="h2" fontSize={18}>Current event</Typography>
+                {
+                    knownEvents.length > 0
+                    &&
+                    <Select value={currentEvent} label="Event" onChange={setEvent} style={{ marginTop: '1em' }}>
+                        {
+                            knownEvents.map(x => <MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)
+                        }
+                    </Select>
+                }
+            </CardContent>
+            <CardActions style={{ justifyContent: 'center' }}>
+                <IconButton color="primary" onClick={() => setEditedEvent({})}><AddIcon /></IconButton>
+                {
+                    currentEvent != ''
+                    && <IconButton color="warning" onClick={() => setEditedEvent(currentEventInst)}><EditIcon /></IconButton>
+                }
+            </CardActions>
+        </Card>
         {
-            knownEvents.length > 0
-            && <Card>
-                <CardContent>
-                    <Typography variant="h2" fontSize={18}>Current event</Typography>
-                    {
-                        <Select value={currentEvent} label="Event" onChange={setEvent} style={{ marginTop: '1em' }}>
-                            {
-                                knownEvents.map(x => <MenuItem key={x.id} value={x.id}>{x.name}</MenuItem>)
-                            }
-                        </Select>
-                    }
-                </CardContent>
-                <CardActions style={{justifyContent: 'center'}}>
-                    <IconButton color="primary" onClick={() => setEditedEvent({})}><AddIcon /></IconButton>
-                    <IconButton color="warning" onClick={() => setEditedEvent(currentEventInst)}><EditIcon /></IconButton>
-                </CardActions>
-            </Card>
-        }
-        {
-            !!modes && modes.length > 0 
+            !!modes && modes.length > 0
             && <Card>
                 <CardContent>
                     <Typography variant="h2" fontSize={18}>Mode</Typography>
@@ -138,7 +146,7 @@ export default function PageIndex() {
                     sendMessage('SET_EVENT', newEvent?.id);
                     setNewEvent(null);
                 }} color="warning" autoFocus>Change event</Button>
-        </DialogActions>
+            </DialogActions>
         </Dialog>
 
         <Dialog open={shutdown} onClose={() => setShutdown(false)}>

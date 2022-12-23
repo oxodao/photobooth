@@ -94,6 +94,10 @@ func (s *Socket) OnMessage(msg models.SocketMessage) {
 		s.sendState()
 	case "TAKE_PICTURE":
 		s.TakePicture()
+	case "REMOTE_TAKE_PICTURE":
+		for _, sock := range GET.Sockets {
+			sock.TakePicture()
+		}
 	case "SET_MODE":
 		mode, ok := msg.Payload.(string)
 		if !ok {

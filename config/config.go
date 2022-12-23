@@ -23,10 +23,16 @@ var MODES = []string{
 	MODE_DISABLED,
 }
 
+type WebcamResolution struct {
+	Width  int `json:"width" yaml:"width"`
+	Height int `json:"height" yaml:"height"`
+}
+
 type PhotoboothConfig struct {
-	HardwareFlash      bool `yaml:"hardware_flash" json:"hardware_flash"`
-	DefaultTimer       int  `yaml:"default_timer" json:"-"`
-	UnattendedInterval int  `yaml:"unattended_interval" json:"-"`
+	HardwareFlash      bool             `yaml:"hardware_flash" json:"hardware_flash"`
+	DefaultTimer       int              `yaml:"default_timer" json:"-"`
+	UnattendedInterval int              `yaml:"unattended_interval" json:"-"`
+	WebcamResolution   WebcamResolution `yaml:"webcam_resolution" json:"webcam_resolution"`
 }
 
 type MosquittoConfig struct {

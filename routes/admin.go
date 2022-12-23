@@ -79,6 +79,18 @@ func createEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//#region If we just created the first event, we automatically select it
+	events, err := orm.GET.Events.GetEvents()
+	if err == nil {
+		if len(events) == 1 {
+			services.GET.Photobooth.CurrentState.CurrentEvent = &events[0].Id
+			services.GET.Photobooth.CurrentState.CurrentEventObj = &events[0]
+
+			orm.GET.AppState.SetState(services.GET.Photobooth.CurrentState)
+		}
+	}
+	//#endregion
+
 	services.GET.Sockets.BroadcastState()
 
 	data, _ := json.MarshalIndent(evt, "", "  ")

@@ -5,6 +5,9 @@ photobooth_has_hardware_flash: false
 photobooth_default_timer: 3
 photobooth_unattended_interval: 5
 
+photobooth_webcam_width: 1280
+photobooth_webcam_height: 720
+
 ntp_enabled: true
 ntp_timezone: Europe/Paris
 

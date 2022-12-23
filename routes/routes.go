@@ -179,6 +179,9 @@ func picture(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Failed to sync the data ! be careful")
 	}
 
+	// Broadcasting the state so that the current event is refreshed on the admin panel
+	services.GET.Sockets.BroadcastState()
+
 	if !isUnattended {
 		http.ServeFile(w, r, filepath)
 	}

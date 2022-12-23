@@ -12,10 +12,18 @@ type appstate = {
     current_event: Event|null;
 };
 
+type Photobooth = {
+    hardware_flash: boolean;
+    webcam_resolution: {
+        width: number;
+        height: number;
+    };
+};
+
 export type AppState = {
     app_state: appstate;
+    photobooth: Photobooth;
     debug: boolean;
-    use_hardware_flash: boolean;
     current_mode: string|null;
 
     ip_addresses: {

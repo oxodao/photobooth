@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/oxodao/photobooth/models"
@@ -33,6 +34,30 @@ func (ee EventExporter) setEventExporting(exp bool) error {
 	}
 
 	return nil
+}
+
+type RecapParams struct {
+	PictureFolder  string
+	OutputFilename string
+	Framerate      int
+}
+
+func (ee EventExporter) BuildFfmpegCommand(params RecapParams) *exec.Cmd {
+	args := []string{"ffmpeg"}
+
+	args = append(args, "-framerate", fmt.Sprintf("%v", params.Framerate))
+	args = append(args, "-pattern_type", "glob")
+	args = append(args, "-i", "'*.jpg'")
+	args = append(args, "-c:v", "libx264")
+
+	args = append(args, params.OutputFilename)
+
+	cmd := exec.Command("bash", "-c", strings.Join(args, " "))
+	cmd.Dir = params.PictureFolder
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd
 }
 
 func (ee EventExporter) Export() (*models.ExportedEvent, error) {
@@ -118,10 +143,11 @@ func (ee EventExporter) Export() (*models.ExportedEvent, error) {
 		os.Remove(outvid)
 	}
 
-	cmd := exec.Command("bash", "-c", "ffmpeg -framerate 6 -pattern_type glob -i '*.jpg' -c:v libx264 -vf \"scale=iw*min(1080/iw\\,1080/ih):ih*min(1080/iw\\,1080/ih), pad=1080:1080:(1080-iw*min(1080/iw\\,1080/ih))/2:(1080-ih*min(1080/iw\\,1080/ih))/2,fps=30000/1001,format=yuv420p\" 000_recap.mp4")
-	cmd.Dir = unattendedRoot
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd := ee.BuildFfmpegCommand(RecapParams{
+		PictureFolder:  unattendedRoot,
+		OutputFilename: "000_recap.mp4",
+		Framerate:      6,
+	})
 	err = cmd.Run()
 	if err != nil {
 		if err2 := ee.setEventExporting(false); err2 != nil {

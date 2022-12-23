@@ -1,16 +1,10 @@
 import { Button, Card, CardActions, CardContent, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper, Table, TableBody, TableCell, TableContainer, TableHead, Typography } from "@mui/material";
-import { useState } from "react";
 import ExportListing from "../components/export_listing";
-import EventEditor from "../components/event_editor";
 import { useWebsocket } from "../hooks/ws";
 import App from "./App";
 
 export default function PagePhotobooth() {
-    const { appState } = useWebsocket();
-
-    const remoteTakePicture = () => {
-        // @TODO
-    };
+    const { appState, sendMessage } = useWebsocket();
 
     return <App>
         <Card>
@@ -26,7 +20,7 @@ export default function PagePhotobooth() {
         </Card>
         <Card>
             <CardActions>
-                <Button style={{ width: '100%' }} onClick={() => remoteTakePicture}>Remote take a picture</Button>
+                <Button style={{ width: '100%' }} onClick={() => sendMessage('REMOTE_TAKE_PICTURE', null)}>Remote take a picture</Button>
             </CardActions>
         </Card>
         {

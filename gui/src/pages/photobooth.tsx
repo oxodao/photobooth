@@ -105,11 +105,11 @@ export default function Photobooth() {
         <Webcam
             forceScreenshotSourceSize
             ref={webcamRef}
-            width={1280}
-            height={720}
+            width={appState.photobooth.webcam_resolution.width}
+            height={appState.photobooth.webcam_resolution.height}
             onClick={() => appState.current_mode !== 'DISABLED' && sendMessage('TAKE_PICTURE')}
             screenshotFormat="image/jpeg"
-            videoConstraints={{ facingMode: 'user' }}
+            videoConstraints={{ facingMode: 'user', ...appState.photobooth.webcam_resolution }}
         />
         {
             timer >= 0 &&

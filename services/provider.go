@@ -29,7 +29,6 @@ type Provider struct {
 }
 
 func (p *Provider) GetFrontendSettings() *models.FrontendSettings {
-
 	settings := models.FrontendSettings{
 		AppState:     p.Photobooth.CurrentState,
 		Photobooth:   config.GET.Photobooth,
@@ -47,6 +46,14 @@ func (p *Provider) GetFrontendSettings() *models.FrontendSettings {
 	if err != nil {
 		fmt.Println("Failed to get events: ", err)
 		return nil
+	}
+
+	if GET.Photobooth.CurrentState.CurrentEvent != nil {
+		evt, err := orm.GET.Events.GetEvent(*GET.Photobooth.CurrentState.CurrentEvent)
+		if err == nil {
+			GET.Photobooth.CurrentState.CurrentEventObj = evt
+			settings.AppState.CurrentEventObj = evt
+		}
 	}
 
 	settings.KnownEvents = events

@@ -106,9 +106,9 @@ export default function ApiProvider({ children }: { children: ReactNode }) {
         getLastExports,
     }}>
         <>
-            {(!!ctx.password && (!ctx.snackbarMessage?.open)) && <>{children}</>}
+            {(!!ctx.password) && <>{children}</>}
 
-            {(!ctx.password || !!(ctx.snackbarMessage?.open)) && <Login />}
+            {!ctx.password  && <Login />}
 
             <Snackbar open={!!ctx.snackbarMessage?.open} autoHideDuration={6000} onClose={closeSnackbar} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
                 <Alert onClose={closeSnackbar} severity={ctx.snackbarMessage?.type} sx={{ width: '100%' }}>

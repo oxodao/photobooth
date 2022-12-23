@@ -1,4 +1,3 @@
-import { Alert, Snackbar } from "@mui/material";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { TextLoader } from "../components/loader";
@@ -6,9 +5,13 @@ import { AppState } from "../types/appstate";
 import { WsMessage } from "../types/ws_message";
 import { useApi } from "./auth";
 
-/**
- * @TODO: Refacto lastError to have a state like in Prowty
- */
+const CONNECTION_MESSAGES = {
+    [ReadyState.CONNECTING]: "Connecting",
+    [ReadyState.OPEN]: "Open",
+    [ReadyState.CLOSING]: "Websocket closing",
+    [ReadyState.CLOSED]: "Websocket closed",
+    [ReadyState.UNINSTANTIATED]: "Websocket uninstantiated"
+};
 
 type WebsocketProps = {
     lastMessage: WsMessage | null;
@@ -33,18 +36,14 @@ const WebsocketContext = createContext<WebsocketContextProps>({
 
 export default function WebsocketProvider({ children }: { children: ReactNode }) {
     const [killSwitch, setKillswitch] = useState<number>(-1);
-    const {showError} = useApi();
+    const { showError } = useApi();
     const [ctx, setContext] = useState<WebsocketProps>(defaultState);
 
     const HOST = `ws://${window.location.host}/api/socket/admin`
     const { sendMessage, lastMessage, readyState } = useWebSocket(HOST);
 
     useEffect(() => {
-        if ([
-            ReadyState.CLOSING,
-            ReadyState.CLOSED,
-            ReadyState.UNINSTANTIATED,
-        ].includes(readyState)) {
+        if ([ReadyState.CLOSING, ReadyState.CLOSED, ReadyState.UNINSTANTIATED].includes(readyState)) {
             setKillswitch(setTimeout(() => {
                 window.location.reload();
             }, 5000));
@@ -56,30 +55,20 @@ export default function WebsocketProvider({ children }: { children: ReactNode })
         }
     }, [readyState]);
 
-    const connectionStatus = {
-        [ReadyState.CONNECTING]: "Connecting",
-        [ReadyState.OPEN]: "Open",
-        [ReadyState.CLOSING]: "Websocket closing",
-        [ReadyState.CLOSED]: "Websocket closed",
-        [ReadyState.UNINSTANTIATED]: "Websocket uninstantiated"
-    }[readyState];
-
     useEffect(() => {
         if (!lastMessage) {
             return;
         }
 
-
         const data = JSON.parse(lastMessage.data);
-        let newCtx = { ...ctx, lastMessage: data };
 
         switch (data.type) {
             case "PING":
                 sendMessage('{"type": "PONG"}')
-                newCtx.currentTime = data.payload;
+                setContext({...ctx, currentTime: data.payload})
                 break
             case "APP_STATE":
-                newCtx.appState = data.payload;
+                setContext({...ctx, appState: data.payload})
                 break
             case "ERR_MODAL":
                 showError(data.payload, 'error');
@@ -91,8 +80,6 @@ export default function WebsocketProvider({ children }: { children: ReactNode })
                 showError('Export completed', 'success');
                 break
         }
-
-        setContext(newCtx)
     }, [lastMessage]);
 
     return <WebsocketContext.Provider value={{
@@ -100,7 +87,7 @@ export default function WebsocketProvider({ children }: { children: ReactNode })
         sendMessage: (msgType: string, data?: any) => sendMessage(JSON.stringify({ type: msgType, payload: data })),
     }}>
         <>
-            <TextLoader loading={readyState != ReadyState.OPEN} text={connectionStatus}>
+            <TextLoader loading={readyState != ReadyState.OPEN} text={CONNECTION_MESSAGES[readyState]}>
                 {children}
             </TextLoader>
         </>
