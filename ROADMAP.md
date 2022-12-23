@@ -4,7 +4,6 @@
 - [x] Set the system time so that we have accurate timestamps for pictures
 - [x] Ability to dump all picture for a given event, plus generating a small recap video (unattended)
 - [] Harware flash
-- [] Fix can't set an event when none is already set
 
 # Version 2
 - [] Adding the quiz feature, customizable if possible
