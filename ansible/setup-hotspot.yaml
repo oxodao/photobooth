@@ -65,12 +65,17 @@
         dest: /etc/hostapd/hostapd.conf
         mode: '0644'
 
+    # For some reason the service is correctly started but doesn't work
+    # until manually restarted.
+    # Stupid hack to fix this = disabling the service and manually starting it
+    # once reaching desktop
+    # @TODO: fix properly
     - name: Enabling the hostapd service
       systemd:
         name: hostapd
         daemon_reload: yes
-        state: started
-        enabled: yes
+        state: stopped
+        enabled: no
         masked: false
 
     - name: Adding iptables rules
