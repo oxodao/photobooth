@@ -14,6 +14,7 @@ type WebsocketProps = {
 
 type WebsocketContextProps = WebsocketProps & {
     sendMessage: (msgType: string, data?: any | null) => void;
+    showDebug: () => void;
 };
 
 const defaultState: WebsocketProps = {
@@ -26,6 +27,7 @@ const defaultState: WebsocketProps = {
 const WebsocketContext = createContext<WebsocketContextProps>({
     ...defaultState,
     sendMessage: (msgType: string, data?: any) => { },
+    showDebug: () => {},
 });
 
 export default function WebsocketProvider({ children }: { children: ReactNode }) {
@@ -84,9 +86,21 @@ export default function WebsocketProvider({ children }: { children: ReactNode })
         setContext(newCtx)
     }, [lastMessage]);
 
+    // @TODO: Make the timer clientside with config
+    // Remove the timer serverside for hiding the debug mode
+    const showDebug = () => {
+        // @ts-ignore
+        setContext({...ctx, appState: {...ctx.appState, debug: true}});
+        setTimeout(() => {
+            // @ts-ignore
+            setContext({...ctx, appState: {...ctx.appState, debug: false}});
+        }, 20000);
+    };
+
     return <WebsocketContext.Provider value={{
         ...ctx,
         sendMessage: (msgType: string, data?: any) => sendMessage(JSON.stringify({ type: msgType, payload: data })),
+        showDebug,
     }}>
         <>
             <TextLoader loading={readyState != ReadyState.OPEN} text={connectionStatus}>
