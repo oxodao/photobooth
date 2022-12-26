@@ -9,8 +9,10 @@ import (
 
 	"github.com/oxodao/photobooth/cmd"
 	"github.com/oxodao/photobooth/config"
+	"github.com/oxodao/photobooth/logs"
 	"github.com/oxodao/photobooth/migrations"
 	"github.com/oxodao/photobooth/services"
+	"github.com/oxodao/photobooth/utils"
 )
 
 //go:embed gui/dist
@@ -23,7 +25,20 @@ var adminapp embed.FS
 var dbScripts embed.FS
 
 func main() {
-	//#region Weird hack to embed webapp only on build
+	if err := config.Load(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	err := utils.MakeOrCreateFolder("")
+	if err != nil {
+		fmt.Println("Failed to create root folder")
+		os.Exit(1)
+	}
+
+	logs.Init()
+
+	//#region Weird hack to embed webapp only on build + Instanciating the logger
 	execPath := os.Args[0]
 	var webappFs *fs.FS = nil
 	var adminappFs *fs.FS = nil
@@ -31,32 +46,27 @@ func main() {
 	if !strings.HasPrefix(execPath, "/tmp/") {
 		subfs, err := fs.Sub(webapp, "gui/dist")
 		if err != nil {
-			fmt.Println("Failed to get webapp path. Not loading the webapp", err)
+			logs.Warn("Failed to get webapp path. Not loading the webapp", err)
 		} else {
 			webappFs = &subfs
 		}
 
 		subfs2, err := fs.Sub(adminapp, "gui_admin/dist")
 		if err != nil {
-			fmt.Println("Failed to get adminapp path. Not loading the adminapp", err)
+			logs.Warn("Failed to get adminapp path. Not loading the adminapp", err)
 		} else {
 			adminappFs = &subfs2
 		}
 	}
 	//#endregion
 
-	if err := config.Load(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
 	if err := migrations.CheckDbExists(dbScripts); err != nil {
-		fmt.Println(err)
+		logs.Error(err)
 		os.Exit(1)
 	}
 
 	if err := services.Load(webappFs, adminappFs); err != nil {
-		fmt.Println(err)
+		logs.Error(err)
 		os.Exit(1)
 	}
 

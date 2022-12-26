@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/oxodao/photobooth/logs"
 	"github.com/oxodao/photobooth/models"
 	"github.com/oxodao/photobooth/orm"
 	"github.com/oxodao/photobooth/utils"
@@ -29,7 +30,7 @@ func (ee EventExporter) setEventExporting(exp bool) error {
 	ee.event.Exporting = exp
 	err := orm.GET.Events.Save(ee.event)
 	if err != nil {
-		fmt.Println("Failed to set the exporting state")
+		logs.Error("Failed to set the exporting state")
 		return err
 	}
 
@@ -110,24 +111,24 @@ func (ee EventExporter) Export() (*models.ExportedEvent, error) {
 	for _, i := range images {
 		imagePath := utils.GetPath(fmt.Sprintf("images/%v/pictures/%v.jpg", ee.event.Id, i.Id))
 		if _, err := os.Stat(imagePath); os.IsNotExist(err) {
-			fmt.Printf("Failed to locate image %v from event %v\n", i.Id, ee.event.Id)
+			logs.Errorf("Failed to locate image %v from event %v\n", i.Id, ee.event.Id)
 			continue
 		}
 
 		fr, err := os.Open(imagePath)
 		if err != nil {
-			fmt.Printf("Failed to open the image %v for the event %v: %v\n", i.Id, ee.event.Id, err)
+			logs.Errorf("Failed to open the image %v for the event %v: %v\n", i.Id, ee.event.Id, err)
 			continue
 		}
 
 		fw, err := zipWriter.Create((time.Time(i.Date)).Format("20060201-150405") + ".jpg")
 		if err != nil {
-			fmt.Printf("Failed to create the image %v for the event %v in the zip file: %v\n", i.Id, ee.event.Id, err)
+			logs.Errorf("Failed to create the image %v for the event %v in the zip file: %v\n", i.Id, ee.event.Id, err)
 			continue
 		}
 
 		if _, err := io.Copy(fw, fr); err != nil {
-			fmt.Printf("Failed to copy the image %v for the event %v in the zip file: %v\n", i.Id, ee.event.Id, err)
+			logs.Errorf("Failed to copy the image %v for the event %v in the zip file: %v\n", i.Id, ee.event.Id, err)
 			continue
 		}
 
@@ -158,7 +159,7 @@ func (ee EventExporter) Export() (*models.ExportedEvent, error) {
 
 	fr, err := os.Open(outvid)
 	if err != nil {
-		fmt.Printf("Failed to open the recap video for the event %v: %v\n", ee.event.Id, err)
+		logs.Errorf("Failed to open the recap video for the event %v: %v\n", ee.event.Id, err)
 		if err2 := ee.setEventExporting(false); err2 != nil {
 			return nil, err
 		}
@@ -168,7 +169,7 @@ func (ee EventExporter) Export() (*models.ExportedEvent, error) {
 
 	fw, err := zipWriter.Create("000_recap.mp4")
 	if err != nil {
-		fmt.Printf("Failed to create the recap video for the event %v in the zip file: %v\n", ee.event.Id, err)
+		logs.Errorf("Failed to create the recap video for the event %v in the zip file: %v\n", ee.event.Id, err)
 		if err2 := ee.setEventExporting(false); err2 != nil {
 			return nil, err
 		}
@@ -176,7 +177,7 @@ func (ee EventExporter) Export() (*models.ExportedEvent, error) {
 	}
 
 	if _, err := io.Copy(fw, fr); err != nil {
-		fmt.Printf("Failed to copy the recap video for the event %v in the zip file: %v\n", ee.event.Id, err)
+		logs.Errorf("Failed to copy the recap video for the event %v in the zip file: %v\n", ee.event.Id, err)
 		if err2 := ee.setEventExporting(false); err2 != nil {
 			return nil, err
 		}
@@ -204,7 +205,7 @@ func (ee EventExporter) Export() (*models.ExportedEvent, error) {
 
 	fw, err = zipWriter.Create("001_infos.json")
 	if err != nil {
-		fmt.Println("Failed to add the info json")
+		logs.Errorf("Failed to add the info json")
 		if err2 := ee.setEventExporting(false); err2 != nil {
 			return nil, err
 		}
@@ -212,7 +213,7 @@ func (ee EventExporter) Export() (*models.ExportedEvent, error) {
 	}
 
 	if _, err := io.Copy(fw, bytes.NewReader(jsonData)); err != nil {
-		fmt.Printf("Failed to copy the info json for the event %v in the zip file: %v\n", ee.event.Id, err)
+		logs.Errorf("Failed to copy the info json for the event %v in the zip file: %v\n", ee.event.Id, err)
 		if err2 := ee.setEventExporting(false); err2 != nil {
 			return nil, err
 		}

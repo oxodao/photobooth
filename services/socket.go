@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/oxodao/photobooth/config"
+	"github.com/oxodao/photobooth/logs"
 	"github.com/oxodao/photobooth/models"
 	"github.com/oxodao/photobooth/orm"
 	"golang.org/x/exp/slices"
@@ -72,7 +73,7 @@ func (s *Socket) TakePicture() {
 
 	GET.Photobooth.IsTakingPicture = true
 
-	fmt.Println("Taking picture...")
+	logs.Info("Taking picture...")
 	go func() {
 		timeout := config.GET.Photobooth.DefaultTimer
 
@@ -126,7 +127,7 @@ func (s *Socket) OnMessage(msg models.SocketMessage) {
 		}
 		err = SetSystemDate(time)
 		if err != nil {
-			fmt.Println(err)
+			logs.Error(err)
 		}
 	case "SET_EVENT":
 		evtIdFloat, ok := msg.Payload.(float64)
@@ -159,7 +160,7 @@ func (s *Socket) OnMessage(msg models.SocketMessage) {
 		token := (*GET.MqttClient).Publish("photobooth/export", 2, false, fmt.Sprintf("%v", msg.Payload))
 		token.Wait()
 		if token.Error() != nil {
-			fmt.Println(token.Error())
+			logs.Error(token.Error())
 		}
 	case "SHUTDOWN":
 		(*GET.MqttClient).Publish("photobooth/button_press", 2, false, "SHUTDOWN")
@@ -167,8 +168,7 @@ func (s *Socket) OnMessage(msg models.SocketMessage) {
 		// Probably should be handled in another way
 		return
 	default:
-		fmt.Printf("Unhandled socket message: %v\n", msg.MsgType)
-		fmt.Println(msg)
+		logs.Infof("Unhandled socket message: %v => ", msg.MsgType, msg)
 	}
 }
 
@@ -214,16 +214,16 @@ func (p *Provider) Join(socketType string, socket *websocket.Conn) {
 			err := socket.ReadJSON(&data)
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					fmt.Println("Unexpected close error: ", err)
+					logs.Error("Unexpected close error: ", err)
 					sock.Open = false
 					return
 				} else if websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					fmt.Println("Websocket disconnected: ", err)
+					logs.Error("Websocket disconnected: ", err)
 					sock.Open = false
 					return
 				}
 
-				fmt.Println(err)
+				logs.Error(err)
 				continue
 			}
 
@@ -235,7 +235,7 @@ func (p *Provider) Join(socketType string, socket *websocket.Conn) {
 		go func() {
 			for sock.Open {
 				time.Sleep(time.Duration(config.GET.Photobooth.UnattendedInterval) * time.Minute)
-				fmt.Println("Unattended picture")
+				logs.Info("Unattended picture")
 				sock.Send("UNATTENDED_PICTURE", nil)
 			}
 		}()

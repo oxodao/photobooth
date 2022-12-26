@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/mattn/go-sqlite3"
+	"github.com/oxodao/photobooth/logs"
 	"github.com/oxodao/photobooth/models"
 	"github.com/oxodao/photobooth/orm"
 	"github.com/oxodao/photobooth/services"
@@ -58,7 +59,7 @@ func createEvent(w http.ResponseWriter, r *http.Request) {
 	updatedEvent := UpdatedEvent{}
 	err := json.NewDecoder(r.Body).Decode(&updatedEvent)
 	if err != nil {
-		fmt.Println("Failed to parse new event: ", err)
+		logs.Error("Failed to parse new event: ", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -69,11 +70,11 @@ func createEvent(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			data, _ := json.MarshalIndent("Some data are missing", "", "  ")
 			w.Write(data)
-			fmt.Println("Missing something: ", err)
+			logs.Error("Missing something: ", err)
 			return
 		}
 
-		fmt.Println("Failed to save new event in DB: ", err)
+		logs.Error("Failed to save new event in DB: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 
 		return
@@ -106,7 +107,7 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&updatedEvent)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Println(err)
+		logs.Error(err)
 		return
 	}
 
@@ -121,7 +122,7 @@ func updateEvent(w http.ResponseWriter, r *http.Request) {
 	err = orm.GET.Events.Save(event)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Println("Failed to save an updated event: ", err)
+		logs.Error("Failed to save an updated event: ", err)
 		return
 	}
 
@@ -167,7 +168,7 @@ func getLastExports(w http.ResponseWriter, r *http.Request) {
 	exportedEvents, err := orm.GET.Events.GetExportedEvents(event, 5)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Println(err)
+		logs.Error(err)
 		return
 	}
 
@@ -190,7 +191,7 @@ func downloadExport(w http.ResponseWriter, r *http.Request) {
 	exportedEvent, err := orm.GET.Events.GetExportedEvent(exportedEventId)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		fmt.Println(err)
+		logs.Error(err)
 
 		return
 	}

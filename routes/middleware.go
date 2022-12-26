@@ -3,7 +3,6 @@ package routes
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -95,7 +94,6 @@ func WithImageMiddleware(h http.Handler) http.Handler {
 		}
 
 		if picture.EventId != evt.Id {
-			fmt.Println(picture.EventId, evt.Id)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte(`

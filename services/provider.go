@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"io/fs"
 	"net"
 	"os/exec"
@@ -10,6 +9,7 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/oxodao/photobooth/config"
+	"github.com/oxodao/photobooth/logs"
 	"github.com/oxodao/photobooth/models"
 	"github.com/oxodao/photobooth/orm"
 	"github.com/oxodao/photobooth/utils"
@@ -44,7 +44,7 @@ func (p *Provider) GetFrontendSettings() *models.FrontendSettings {
 
 	events, err := orm.GET.Events.GetEvents()
 	if err != nil {
-		fmt.Println("Failed to get events: ", err)
+		logs.Error("Failed to get events: ", err)
 		return nil
 	}
 
@@ -86,11 +86,11 @@ func (p *Provider) GetFrontendSettings() *models.FrontendSettings {
 func SetSystemDate(newTime time.Time) error {
 	_, lookErr := exec.LookPath("sudo")
 	if lookErr != nil {
-		fmt.Printf("Sudo binary not found, cannot set system date: %s\n", lookErr.Error())
+		logs.Errorf("Sudo binary not found, cannot set system date: %s\n", lookErr.Error())
 		return lookErr
 	} else {
 		dateString := newTime.Format("2 Jan 2006 15:04:05")
-		fmt.Printf("Setting system date to: %s\n", dateString)
+		logs.Errorf("Setting system date to: %s\n", dateString)
 		args := []string{"date", "--set", dateString}
 		return exec.Command("sudo", args...).Run()
 	}
@@ -131,10 +131,10 @@ func Load(webapp, adminapp *fs.FS) error {
 	opts := mqtt.NewClientOptions().AddBroker(config.GET.Mosquitto.Address).SetClientID("photobooth").SetPingTimeout(10 * time.Second).SetKeepAlive(10 * time.Second)
 	opts.SetAutoReconnect(true).SetMaxReconnectInterval(10 * time.Second)
 	opts.SetConnectionLostHandler(func(c mqtt.Client, err error) {
-		fmt.Printf("[MQTT] Connection lost: %s\n" + err.Error())
+		logs.Errorf("[MQTT] Connection lost: %s\n" + err.Error())
 	})
 	opts.SetReconnectingHandler(func(c mqtt.Client, options *mqtt.ClientOptions) {
-		fmt.Println("[MQTT] Reconnecting...")
+		logs.Info("[MQTT] Reconnecting...")
 	})
 
 	prv := &Provider{

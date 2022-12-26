@@ -2,13 +2,13 @@ package cmd
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"os"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/oxodao/photobooth/config"
+	"github.com/oxodao/photobooth/logs"
 	"github.com/oxodao/photobooth/models"
 	"github.com/oxodao/photobooth/orm"
 	"github.com/oxodao/photobooth/routes"
@@ -24,7 +24,7 @@ var rootCmd = &cobra.Command{
 		_, err := orm.GET.AppState.GetState()
 		if err != nil {
 			if err != sql.ErrNoRows {
-				fmt.Println("Failed to load appstate: ", err)
+				logs.Error("Failed to load appstate: ", err)
 				os.Exit(1)
 			}
 
@@ -34,18 +34,18 @@ var rootCmd = &cobra.Command{
 			}
 			err := orm.GET.AppState.CreateState(as)
 			if err != nil {
-				fmt.Println("Failed to save the state: ", err)
+				logs.Error("Failed to save the state: ", err)
 				os.Exit(1)
 			}
 
-			fmt.Println("Initializing the photobooth with id ", as.HardwareID)
+			logs.Info("Initializing the photobooth with id ", as.HardwareID)
 		}
 
 		err = orm.GET.Events.ClearExporting()
 		if err != nil {
-			fmt.Println("Failed to clear event exporting.")
-			fmt.Println("Some event might be in a wrong state...")
-			fmt.Println(err)
+			logs.Error("Failed to clear event exporting.")
+			logs.Error("Some event might be in a wrong state...")
+			logs.Error(err)
 		}
 
 		r := mux.NewRouter()
@@ -56,19 +56,19 @@ var rootCmd = &cobra.Command{
 		if services.GET.AdminappFS != nil {
 			r.PathPrefix("/admin").Handler(http.StripPrefix("/admin", http.FileServer(http.FS(*services.GET.AdminappFS))))
 		} else {
-			fmt.Println("Failed to embed admin: not loaded")
+			logs.Error("Failed to embed admin: not loaded")
 		}
 
 		if services.GET.WebappFS != nil {
 			r.PathPrefix("/").Handler(http.FileServer(http.FS(*services.GET.WebappFS)))
 		} else {
-			fmt.Println("Failed to embed webapp: not loaded")
+			logs.Error("Failed to embed webapp: not loaded")
 		}
 
-		fmt.Printf("Photobooth app is listening on %v\n", config.GET.Web.ListeningAddr)
+		logs.Infof("Photobooth app is listening on %v\n", config.GET.Web.ListeningAddr)
 		err = http.ListenAndServe(config.GET.Web.ListeningAddr, r)
 		if err != nil {
-			fmt.Println(err)
+			logs.Error("Failed to listen on the given address/port", err)
 			os.Exit(1)
 		}
 	},

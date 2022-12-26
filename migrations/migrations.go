@@ -3,11 +3,11 @@ package migrations
 import (
 	"database/sql"
 	"embed"
-	"fmt"
 	"os"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/oxodao/photobooth/logs"
 	"github.com/oxodao/photobooth/utils"
 )
 
@@ -91,12 +91,12 @@ func DoMigrations(db *sqlx.DB) error {
 	}
 
 	if len(MIGRATIONS) > version {
-		fmt.Println("Found newer migrations, applying them")
+		logs.Info("Found newer migrations, applying them")
 		currentVersion := version
 		lastVersion := len(MIGRATIONS)
-		fmt.Printf("Current version: %v, Latest version: %v\n", currentVersion, lastVersion)
+		logs.Infof("Current version: %v, Latest version: %v\n", currentVersion, lastVersion)
 		for ; currentVersion < len(MIGRATIONS); currentVersion++ {
-			fmt.Printf("\t- Applying migration %v\n", currentVersion)
+			logs.Infof("\t- Applying migration %v\n", currentVersion)
 			err := MIGRATIONS[currentVersion].Apply(db)
 			if err != nil {
 				return err
@@ -111,7 +111,7 @@ func DoMigrations(db *sqlx.DB) error {
 			}
 		}
 	} else {
-		fmt.Println("Database is up to date !")
+		logs.Info("Database is up to date !")
 	}
 
 	return nil

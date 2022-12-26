@@ -1,10 +1,10 @@
 package services
 
 import (
-	"fmt"
 	"strconv"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/oxodao/photobooth/logs"
 	"github.com/oxodao/photobooth/models"
 	"github.com/oxodao/photobooth/orm"
 )
@@ -19,24 +19,22 @@ type Photobooth struct {
 }
 
 func (pb *Photobooth) OnSyncRequested(client mqtt.Client, msg mqtt.Message) {
-	fmt.Println("Sync requested")
+	logs.Info("Sync requested")
 }
 
 func (pb *Photobooth) OnExportEvent(client mqtt.Client, msg mqtt.Message) {
 	eventIdStr := string(msg.Payload())
 	eventId, err := strconv.ParseInt(eventIdStr, 10, 64)
 	if err != nil {
-		fmt.Println("Failed to export event: bad eventid => ", eventIdStr)
-		fmt.Println(err)
+		logs.Error("Failed to export event: bad eventid => ", eventIdStr)
+		logs.Error(err)
 
 		return
 	}
 
 	event, err := orm.GET.Events.GetEvent(eventId)
 	if err != nil {
-		fmt.Println("Failed to export event:")
-		fmt.Println(err)
-
+		logs.Error("Failed to export event:", err)
 		return
 	}
 
@@ -44,7 +42,7 @@ func (pb *Photobooth) OnExportEvent(client mqtt.Client, msg mqtt.Message) {
 
 	exportedEvent, err := (NewEventExporter(event)).Export()
 	if err != nil {
-		fmt.Println(err)
+		logs.Error(err)
 		return
 	}
 

@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/oxodao/photobooth/config"
+	"github.com/oxodao/photobooth/logs"
 	"github.com/oxodao/photobooth/orm"
 	"github.com/oxodao/photobooth/services"
 	"golang.org/x/exp/slices"
@@ -48,8 +49,8 @@ func socket(w http.ResponseWriter, r *http.Request) {
 	if socketType == services.SOCKET_TYPE_PHOTOBOOTH {
 		host, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
-			fmt.Println("Failed to parse hostport: ", err)
-			fmt.Println("Got hostport: ", r.RemoteAddr)
+			logs.Error("Failed to parse hostport: ", err)
+			logs.Error("Got hostport: ", r.RemoteAddr)
 
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -61,7 +62,7 @@ func socket(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			fmt.Println("[Debug mode] Letting a remote connection from ", host)
+			logs.Debug("Letting a remote connection from ", host)
 		}
 	} else {
 		// @TODO: Handle authentication
@@ -69,7 +70,7 @@ func socket(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Println("Failed to upgrade connection: ", err)
+		logs.Error("Failed to upgrade connection: ", err)
 		return
 	}
 
@@ -91,8 +92,8 @@ func getEventAndFilename(event string, isUnattended bool) (int64, string) {
 
 	eventId, err = strconv.ParseInt(event, 10, 64)
 	if err != nil {
-		fmt.Println("Failed to get event id: ", err)
-		fmt.Println("Fallingback to id -1")
+		logs.Error("Failed to get event id: ", err)
+		logs.Error("Fallingback to id -1")
 		eventId = -1
 	}
 
@@ -102,14 +103,14 @@ func getEventAndFilename(event string, isUnattended bool) (int64, string) {
 
 	evt, err := orm.GET.Events.GetEvent(eventId)
 	if err != nil {
-		fmt.Println("No event for the given id")
+		logs.Error("No event for the given id")
 		return -1, imageName
 	}
 
 	img, err := orm.GET.Events.InsertImage(evt.Id, isUnattended)
 	if err != nil {
-		fmt.Println("Failed to insert image: ", err)
-		fmt.Println("Defaulting name to current timestamp in the root folder for the event")
+		logs.Error("Failed to insert image: ", err)
+		logs.Error("Defaulting name to current timestamp in the root folder for the event")
 	} else {
 		imageName = fmt.Sprintf("%v.jpg", img.Id)
 	}
@@ -120,7 +121,7 @@ func getEventAndFilename(event string, isUnattended bool) (int64, string) {
 func picture(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(256 * 1024) // Max picture size = 256mo, we should be good.
 	if err != nil {
-		fmt.Println("Unable to save picture: Parse form error => ", err)
+		logs.Error("Unable to save picture: Parse form error => ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -130,14 +131,14 @@ func picture(w http.ResponseWriter, r *http.Request) {
 	image := r.FormValue("image")
 
 	if len(event) == 0 || len(unattended) == 0 || len(image) == 0 {
-		fmt.Println("Failed to save picture: bad request")
+		logs.Error("Failed to save picture: bad request")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	isUnattended, err := strconv.ParseBool(unattended)
 	if err != nil {
-		fmt.Println("Failed to parse unattended var: ", err)
+		logs.Error("Failed to parse unattended var: ", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -146,7 +147,7 @@ func picture(w http.ResponseWriter, r *http.Request) {
 
 	path, err := config.GET.GetImageFolder(eventId, isUnattended)
 	if err != nil {
-		fmt.Println("Failed to create path: ", err)
+		logs.Error("Failed to create path: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -154,7 +155,7 @@ func picture(w http.ResponseWriter, r *http.Request) {
 	filepath := filepath.Join(path, filename)
 	f, err := os.Create(filepath)
 	if err != nil {
-		fmt.Println("Failed to create image file...")
+		logs.Error("Failed to create image file...")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -163,20 +164,20 @@ func picture(w http.ResponseWriter, r *http.Request) {
 	image = image[len("data:image/jpeg;base64,"):]
 	data, err := base64.StdEncoding.DecodeString(image)
 	if err != nil {
-		fmt.Println("Failed to decode image, writing it to file as-is")
+		logs.Error("Failed to decode image, writing it to file as-is")
 		_, err = f.Write([]byte(image))
 		if err != nil {
-			fmt.Println("Even failed to write the b64... sad")
+			logs.Error("Even failed to write the b64... sad")
 		}
 	} else {
 		_, err = f.Write(data)
 		if err != nil {
-			fmt.Println("Failed to write the image to disk")
+			logs.Error("Failed to write the image to disk")
 		}
 	}
 
 	if err = f.Sync(); err != nil {
-		fmt.Println("Failed to sync the data ! be careful")
+		logs.Error("Failed to sync the data ! be careful")
 	}
 
 	// Broadcasting the state so that the current event is refreshed on the admin panel

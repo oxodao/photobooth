@@ -1,10 +1,9 @@
 package services
 
 import (
-	"fmt"
-
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/oxodao/photobooth/config"
+	"github.com/oxodao/photobooth/logs"
 	"golang.org/x/exp/slices"
 )
 
@@ -15,7 +14,7 @@ type Admin struct {
 func (a *Admin) OnSetMode(c mqtt.Client, msg mqtt.Message) {
 	mode := string(msg.Payload())
 	if !slices.Contains(config.MODES, mode) {
-		fmt.Println("given mode is not allowed")
+		logs.Error("given mode is not allowed")
 		return
 	}
 

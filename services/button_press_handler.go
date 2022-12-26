@@ -1,11 +1,11 @@
 package services
 
 import (
-	"fmt"
 	"os/exec"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/oxodao/photobooth/logs"
 )
 
 var BPH *ButtonPressHandler = nil
@@ -31,7 +31,7 @@ func (bph *ButtonPressHandler) OnButtonPress(client mqtt.Client, msg mqtt.Messag
 	if ok {
 		handler(client)
 	} else {
-		fmt.Println("Unknown button pressent: ", string(msg.Payload()))
+		logs.Error("Unknown button pressent: ", string(msg.Payload()))
 	}
 
 	msg.Ack()
