@@ -10,20 +10,15 @@
         state: 'directory'
         mode: '0777' # fck
 
-    - name: Fetching the latest release infos
-      uri:                                                               
-        url: https://api.github.com/repos/oxodao/photobooth-hwhandler/releases/latest
-        return_content: true                                             
-      register: json_reponse 
-
-    - name: Filtering on arm64
-      set_fact:
-        latest_binary: "{{json_reponse.json['assets'][1]}}" # @TODO: Filter on pbhh-(.*)-linux-arm64, @TODO even later: filter on current os's arch
+    - name: Fetch the photobooth release URL
+      get_release_url: 
+        repository: oxodao/photobooth-v3
+      register: pbhhurl
 
     - name: Downloading the latest release
       become: yes
       get_url:
-        url: "{{latest_binary.browser_download_url}}"
+        url: "{{pbhhurl.meta}}"
         dest: /opt/photobooth/pbhh
         mode: '0777'
 

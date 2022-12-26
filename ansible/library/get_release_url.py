@@ -4,6 +4,11 @@ from ansible.module_utils.basic import *
 import requests
 import platform
 
+CUSTOM_ARCH_NAMES = {
+    'x86_64': 'amd64',
+    'aarch64': 'arm64',
+}
+
 def main():
 
     fields = {
@@ -13,8 +18,8 @@ def main():
     module = AnsibleModule(argument_spec=fields)
 
     arch = platform.uname()[4]
-    if arch == 'x86_64':
-        arch = 'amd64'
+    if arch in CUSTOM_ARCH_NAMES.keys():
+        arch = CUSTOM_ARCH_NAMES[arch]
 
     resp = requests.get(f'https://api.github.com/repos/{module.params["repository"]}/releases/latest')
     
@@ -27,7 +32,7 @@ def main():
         if asset['name'].endswith(arch):
             module.exit_json(changed=False, meta=asset['browser_download_url'])
 
-    module.fail_json(changed=False, msg='Binary not available for this architecture')
+    module.fail_json(changed=False, msg=f'Binary not available for this architecture: {arch}')
 
 if __name__ == '__main__':
     main()

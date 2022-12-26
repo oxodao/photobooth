@@ -38,13 +38,17 @@ func (pb *Photobooth) OnExportEvent(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
+	logs.Info("Export requested")
 	pb.prv.Sockets.BroadcastAdmin("EXPORT_STARTED", event)
 
-	exportedEvent, err := (NewEventExporter(event)).Export()
-	if err != nil {
-		logs.Error(err)
-		return
-	}
+	go func() {
+		exportedEvent, err := (NewEventExporter(event)).Export()
+		if err != nil {
+			logs.Error(err)
+			pb.prv.Sockets.BroadcastAdmin("ERR_MODAL", err.Error())
+			return
+		}
 
-	pb.prv.Sockets.BroadcastAdmin("EXPORT_COMPLETED", exportedEvent)
+		pb.prv.Sockets.BroadcastAdmin("EXPORT_COMPLETED", exportedEvent)
+	}()
 }
