@@ -12,7 +12,7 @@
 
     - name: Fetch the photobooth release URL
       get_release_url: 
-        repository: oxodao/photobooth-v3
+        repository: oxodao/photobooth
       register: pbhhurl
 
     - name: Downloading the latest release
