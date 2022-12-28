@@ -10,7 +10,7 @@
         state: 'directory'
         mode: '0777' # fck
 
-    - name: Fetch the photobooth release URL
+    - name: Fetch the photobooth hardware-handler release URL
       get_release_url: 
         repository: oxodao/photobooth-hwhandler
       register: pbhhurl
