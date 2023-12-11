@@ -1,5 +1,7 @@
 # Photobooth
 
+# MOVED TO THE [PARTYHALL ORG](https://github.com/PartyHall/partyhall)
+
 ## Install
 Flash an SD card with Raspbian lite (64 BITS !!!) and boot it up with an ethernet connection.
 
